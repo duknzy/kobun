@@ -17,56 +17,43 @@
         
         :root { --f1-red: #e10600; --rb-navy: #0b0e14; }
 
-        /* 【修正】html と body の設定を以下のように変更 */
-    
-    /* 【修正】html と body の設定を以下のように変更 */
-    
-    html {
-        /* アプリ全体の裏地を暗くして、白い隙間が出ないようにする */
-        background-color: #0b0e14; 
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        /* ↓ 追加: スクロールバウンスを防ぐ固定配置 */
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-    }
+       
+    /* ▼▼▼ ここから書き換え ▼▼▼ */
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* これが重要。画面全体のスクロールをロックする */
+            background-color: transparent; /* 背景はビデオに任せる */
+            color: #e2e8f0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            touch-action: manipulation;
+            overscroll-behavior: none; /* バウンススクロール防止 */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
 
-    body {
-        height: 100%; 
-        width: 100%; 
-        overflow: hidden; 
-        background-color: transparent; 
-        margin: 0; 
-        padding: 0;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        -webkit-user-select: none; 
-        user-select: none;
-        touch-action: manipulation;
-        /* ↓ 追加: 画面全体を固定し、Safe Area（ノッチ等）を考慮 */
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        -webkit-touch-callout: none;
-        padding-top: max(0px, env(safe-area-inset-top));
-        padding-bottom: max(0px, env(safe-area-inset-bottom));
-        padding-left: max(0px, env(safe-area-inset-left));
-        padding-right: max(0px, env(safe-area-inset-right));
-    }
+        body {
+            /* ノッチ対策。これがスマホでの表示崩れを防ぐ */
+            padding-top: max(1rem, env(safe-area-inset-top));
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        }
 
-    /* ↓ 新規追加: アプリ本体のコンテナも固定配置に */
-    #app {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        padding-top: max(0.5rem, env(safe-area-inset-top));
-    }
+        #app {
+            height: 100%;
+            width: 100%;
+            overflow-y: auto; /* コンテンツだけをスクロールさせる */
+            -webkit-overflow-scrolling: touch; /* 滑らかなスクロール */
+            padding: 1rem;
+            position: relative;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #app::-webkit-scrollbar { display: none; }
+        /* ▲▲▲ ここまで ▲▲▲ */
 
         /* 背景動画の設定 */
         #bg-video {
