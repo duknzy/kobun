@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0b0e14">
+    <title>Kobun GP</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* フォントを明朝体に変更して古文の雰囲気を少しプラス（F1感とのミックス） */
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Shippori+Mincho:wght@400;700&display=swap');
+        
+        :root { --f1-red: #e10600; --rb-navy: #0b0e14; }
+
+        html, body {
+            height: 100%; width: 100%; overflow: hidden; 
+            background-color: #0b0e14; color: #e2e8f0;
+            font-family: 'Shippori Mincho', 'Chakra Petch', sans-serif;
+            -webkit-user-select: none; user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* 背景動画の設定 */
+        #bg-video {
+            position: fixed; right: 0; bottom: 0;
+            min-width: 100%; min-height: 100%;
+            width: auto; height: auto; z-index: -1;
+            object-fit: cover; filter: brightness(0.5);
+        }
+
+        .f1-font { font-family: 'Chakra Petch', sans-serif; } /* 数字などはF1フォント維持 */
+        .jp-font { font-family: 'Shippori Mincho', serif; font-weight: bold; }
+
+        .race-card {
+            background: rgba(11, 14, 20, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .option-btn { 
+            transition: all 0.1s; position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .option-btn:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.2); }
+        .option-btn:disabled { opacity: 0.6; }
+
+        .tire-btn { opacity: 0.4; transform: scale(0.95); transition: all 0.2s; border-width: 2px; }
+        .tire-btn.active { opacity: 1; transform: scale(1); box-shadow: 0 0 15px rgba(255,255,255,0.1); }
+        .tire-soft.active { border-color: #ef4444; color: #ef4444; } 
+        .tire-medium.active { border-color: #eab308; color: #eab308; } 
+        .tire-hard.active { border-color: #f8fafc; color: #f8fafc; } 
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
+        
+        .wb-scroll::-webkit-scrollbar { width: 4px; }
+        .wb-scroll::-webkit-scrollbar-track { background: #1a1a1a; }
+        .wb-scroll::-webkit-scrollbar-thumb { background: #e10600; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-sm md:text-base">
+
+    <video autoplay muted loop playsinline poster="./F1.jpg" id="bg-video">
+        <source src="./f1.mp4" type="video/mp4">
+    </video>
+
+    <div id="app" class="w-full max-w-6xl mx-auto flex flex-col h-full p-4 overflow-hidden relative">
+        
+        <div id="gate-screen" class="race-card p-8 rounded-2xl text-center relative animate-slide-in my-auto max-w-md mx-auto w-full">
+            <h1 class="f1-font text-5xl mb-2 font-bold text-white tracking-wider">KOBUN<span class="text-red-600">-GP</span></h1>
+            <p class="text-gray-400 f1-font text-xs uppercase tracking-[0.4em] mb-12">Classical Japanese Racing</p>
+            <button id="gate-login-btn" class="w-full f1-font bg-white hover:bg-gray-200 text-black px-8 py-4 rounded-xl font-bold tracking-widest uppercase transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95">
+                Sign In (Google)
+            </button>
+            <p id="login-status" class="mt-6 text-[10px] text-gray-600 font-mono">System Standby...</p>
+        </div>
+
+        <div id="start-screen" class="hidden race-card p-4 md:p-6 rounded-2xl relative z-10 animate-slide-in my-auto w-full max-w-5xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+                <div class="md:col-span-5 flex flex-col gap-6">
+                    <div class="flex justify-between items-end border-b border-gray-700 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]"></div>
+                            <p id="user-name" class="f1-font text-xl text-white font-bold truncate">DRIVER</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-gray-500 uppercase tracking-widest block">Daily Laps</span>
+                            <span id="daily-laps-display" class="f1-font text-3xl text-white font-bold leading-none">0</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div id="tire-status-box" class="bg-red-900/20 p-4 rounded-xl border border-red-900/30 text-center relative overflow-hidden group hover:bg-red-900/30 transition-colors cursor-pointer">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Review Status</p>
+                            <span id="mistake-count-display" class="f1-font text-xl text-green-500 font-bold">OPTIMAL</span>
+                            <div id="pit-alert-overlay" class="hidden absolute inset-0 bg-red-600 flex items-center justify-center animate-pulse">
+                                <span class="f1-font text-white font-bold text-sm">PIT STOP REQUIRED</span>
+                            </div>
+                        </div>
+                        <button onclick="quiz.openTelemetry()" class="bg-blue-900/20 p-4 rounded-xl border border-blue-900/30 flex flex-col items-center justify-center hover:bg-blue-900/30 transition-colors">
+                            <span class="text-2xl mb-1">📊</span>
+                            <span class="text-[10px] text-blue-300 uppercase font-bold tracking-widest">Data Analysis</span>
+                        </button>
+                    </div>
+
+                    <button onclick="quiz.start()" class="w-full f1-font bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 text-white py-6 rounded-xl font-bold tracking-[0.2em] uppercase transition-all shadow-lg shadow-red-900/40 text-2xl border-b-4 border-red-900 mt-auto active:border-b-0 active:translate-y-1">
+                        Start Engine
+                    </button>
+                </div>
+
+                <div class="md:col-span-7 flex flex-col gap-4 border-t md:border-t-0 md:border-l border-gray-700 pt-6 md:pt-0 md:pl-8">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-gray-400">⚙️</span>
+                        <h3 class="f1-font text-lg font-bold text-white tracking-widest uppercase">Race Strategy</h3>
+                        <p id="strategy-summary" class="ml-auto text-[10px] text-gray-500 font-mono border border-gray-700 px-2 py-1 rounded">Setup: Standard</p>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label class="text-gray-500 text-[10px] uppercase tracking-widest block mb-2">Sector Selection</label>
+                            <div class="relative">
+                                <select id="round-selector" class="w-full bg-black/50 text-white p-3 rounded-lg border border-gray-600 focus:border-red-500 outline-none font-mono text-xs appearance-none cursor-pointer hover:bg-black/70 transition-colors" onchange="quiz.updateSummary()"></select>
+                                <div class="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">▼</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Laps (Questions)</p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <button onclick="quiz.setTireStrategy(10, 'soft')" id="tire-soft" class="tire-btn tire-soft bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
+                                    <span class="block text-xs mb-1">🔴 Sprint</span>(10)
+                                </button>
+                                <button onclick="quiz.setTireStrategy(20, 'medium')" id="tire-medium" class="tire-btn tire-medium active bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
+                                    <span class="block text-xs mb-1">🟡 Race</span>(20)
+                                </button>
+                                <button onclick="quiz.setTireStrategy(50, 'hard')" id="tire-hard" class="tire-btn tire-hard bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
+                                    <span class="block text-xs mb-1">⚪ Endurance</span>(50)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4">
+                             <label class="flex items-center justify-between cursor-pointer group bg-black/30 p-3 rounded-lg border border-gray-800 hover:border-gray-600 transition-colors">
+                                <span class="text-xs font-bold text-gray-300 group-hover:text-cyan-400 transition-colors flex items-center gap-2">
+                                    <span class="text-cyan-400">🔄</span> REVERSE GRID (現代語訳 ⇒ 古文単語)
+                                </span>
+                                <input type="checkbox" id="reverse-mode" class="w-5 h-5 cursor-pointer accent-red-600" onchange="quiz.updateSummary()">
+                            </label>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-700">
+                            <button onclick="quiz.openWordBook()" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 border border-gray-600 py-3 rounded-lg font-bold transition-all uppercase text-xs flex items-center justify-center gap-2">
+                                <span>📁</span> OPEN DATA CENTER (単語帳)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="telemetry-screen" class="hidden race-card p-6 rounded-2xl text-center border-t-4 border-blue-500 h-[90%] my-auto z-40 absolute inset-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="f1-font text-2xl font-bold text-blue-400 tracking-widest">TELEMETRY</h2>
+                <button onclick="quiz.closeOverlay('telemetry-screen')" class="text-gray-400 active:text-white text-3xl p-2">&times;</button>
+            </div>
+            <div class="bg-black/50 p-2 rounded-xl mb-4 border border-gray-800 h-64 w-full relative">
+                <canvas id="weaknessRadarChart"></canvas>
+            </div>
+            <div class="text-left mb-4 h-full overflow-hidden flex flex-col">
+                <h3 class="text-xs text-red-500 font-bold uppercase tracking-widest mb-2 flex-shrink-0">Degradation Report (苦手単語)</h3>
+                <div id="worst-words-list" class="space-y-1 overflow-y-auto pr-2 flex-grow scrollbar-thin"></div>
+            </div>
+        </div>
+        
+        <div id="wordbook-screen" class="hidden race-card p-6 rounded-2xl text-center border-t-4 border-yellow-500 h-[90%] my-auto z-50 flex flex-col absolute inset-4">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h2 class="f1-font text-2xl font-bold text-yellow-500 tracking-widest">DATA CENTER</h2>
+                <button onclick="quiz.closeOverlay('wordbook-screen')" class="text-gray-400 active:text-white text-3xl p-2">&times;</button>
+            </div>
+            <div class="flex gap-2 mb-4 flex-shrink-0">
+                <input type="text" id="wb-search" placeholder="Search..." class="flex-1 bg-black text-white p-2 text-sm rounded border border-gray-700 focus:border-yellow-500 outline-none">
+                <button id="wb-filter-btn" class="bg-gray-800 text-white px-3 rounded border border-gray-600 text-xs font-bold uppercase hover:bg-gray-700 transition-colors" onclick="quiz.toggleBookFilter()">ALL</button>
+            </div>
+            <div id="wb-list" class="flex-1 overflow-y-auto wb-scroll text-left space-y-2 pr-1"></div>
+        </div>
+
+        <div id="quiz-screen" class="hidden race-card p-6 rounded-2xl shadow-2xl relative flex flex-col justify-between my-auto min-h-[500px] w-full max-w-5xl mx-auto">
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex flex-col text-left">
+                    <span id="circuit-name" class="f1-font text-[10px] text-gray-400 uppercase tracking-widest">ROUND 1</span>
+                    <span id="question-number" class="f1-font text-white font-bold text-lg">LAP 1/20</span>
+                </div>
+                <div class="text-right">
+                    <div id="timer" class="f1-font text-2xl text-yellow-400 font-mono">0.00s</div>
+                </div>
+            </div>
+            <div class="w-full bg-gray-800 h-1 mb-8 rounded-full overflow-hidden">
+                <div id="progress-fill" class="bg-gradient-to-r from-red-600 to-yellow-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+            
+            <div class="flex-grow flex flex-col items-center justify-center mb-8 relative">
+                <div class="absolute -top-6 text-gray-500 text-[10px] uppercase tracking-widest" id="question-label">Target</div>
+                <h2 id="target-word" class="jp-font text-5xl md:text-7xl font-bold text-white tracking-wide drop-shadow-xl break-words px-2 text-center transition-all py-8"></h2>
+            </div>
+            
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto w-full"></div>
+
+            <div id="feedback" class="h-8 mt-4 flex items-center justify-center text-sm font-bold tracking-wider uppercase"></div>
+        </div>
+
+        <div id="result-screen" class="hidden race-card p-8 rounded-2xl shadow-2xl text-center animate-slide-in my-auto max-w-2xl mx-auto w-full">
+            <h2 class="f1-font text-4xl mb-2 font-bold text-white italic tracking-tighter">CHECKERED FLAG</h2>
+            <div class="w-full h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent opacity-50 mb-8"></div>
+            
+            <div id="accuracy-display" class="f1-font text-8xl font-bold mb-2 text-white glitch-text tracking-tighter">100%</div>
+            <p id="rank-text" class="f1-font text-sm mb-8 text-gray-400 font-mono"></p>
+            
+            <div class="bg-black/40 p-4 rounded-xl mb-8 text-left max-h-48 overflow-y-auto border border-gray-800 scrollbar-thin" id="review-list"></div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="quiz.returnToGrid()" class="f1-font border border-gray-600 hover:bg-gray-800 text-white py-4 rounded-xl font-bold transition-all uppercase text-sm tracking-wider">Garage</button>
+                <button id="next-round-btn" class="f1-font bg-red-600 hover:bg-red-500 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-red-900/50 uppercase text-sm tracking-wider">Next Sector</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      // ★古文データ（ここにデータを追加してください）
+      // フォーマット: 「古文単語: 意味1 | 意味2 | 意味3」
+      const rawData = `
+おどろく: はっと気づく | 目が覚める
+ねんず: 祈る | 我慢する
+あてなり: 身分が高い | 上品だ
+ののしる: 大騒ぎする | 評判になる | 勢いが盛んだ
+やがて: そのまま | すぐに
+けしき: 様子 | 機嫌 | 思い
+うつくし: かわいらしい | 立派だ
+かなし: いとしい | かわいい | 悲しい
+をかし: 趣がある | おもしろい | 美しい
+あはれなり: しみじみと情趣深い | 気の毒だ
+      `; 
+
+    document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
+
+    class HybridQuiz {
+        constructor() {
+            this.wordsPerRound = 20; 
+            this.masterList = [];
+            this.vocabRounds = [];
+            this.currentRoundIndex = 0;
+            this.questions = [];
+            this.currentIndex = 0;
+            this.missCount = 0;
+            this.missedWordsLog = [];
+            this.startTime = 0;
+            this.timerInterval = null;
+            this.allMistakes = []; 
+            this.dueMistakes = [];
+            this.bookmarkedOnly = false;
+            this.isPitStopMode = false;
+            this.isReverseMode = false;
+
+            document.getElementById('wb-search').addEventListener('input', () => this.renderWordBook());
+
+            this.parseData();
+            this.generateRounds();
+            this.initUI();
+        }
+
+        parseData() {
+            if(!rawData.trim()) { this.masterList = []; return; }
+            const lines = rawData.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            this.masterList = [];
+            lines.forEach(line => {
+                // セパレータはコロンか全角コロン
+                let sep = -1;
+                if (line.indexOf(':') !== -1) sep = line.indexOf(':');
+                else if (line.indexOf('：') !== -1) sep = line.indexOf('：');
+                
+                if (sep !== -1) {
+                    const w = line.substring(0, sep).trim();
+                    const mRaw = line.substring(sep + 1).trim();
+                    // パイプ | で区切って配列にする
+                    const meanings = mRaw.split('|').map(m => m.trim());
+                    this.masterList.push({ w: w, m: meanings });
+                }
+            });
+        }
+
+        generateRounds() {
+            const wordCopy = [...this.masterList]; 
+            this.vocabRounds = [];
+            let roundNum = 1;
+            while (wordCopy.length > 0) {
+                const chunk = wordCopy.splice(0, this.wordsPerRound);
+                if (chunk.length > 0) {
+                    this.vocabRounds.push({ id: roundNum, name: `SECTOR ${roundNum}`, words: chunk });
+                    roundNum++;
+                }
+            }
+        }
+
+        initUI() {
+            const selector = document.getElementById('round-selector');
+            selector.innerHTML = '';
+            if(this.vocabRounds.length === 0) { selector.innerHTML = '<option>No Data Loaded</option>'; }
+            else {
+                this.vocabRounds.forEach((round, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = index;
+                    opt.text = round.name;
+                    selector.appendChild(opt);
+                });
+            }
+            this.updateSummary();
+        }
+
+        updateSummary() {
+            const selector = document.getElementById('round-selector');
+            let roundName = selector.options[selector.selectedIndex]?.text || "Unknown";
+            const tire = this.wordsPerRound;
+            const rev = document.getElementById('reverse-mode').checked ? "REV" : "STD";
+            document.getElementById('strategy-summary').innerText = `${roundName} | ${tire} Qs | ${rev}`;
+        }
+
+        setTireStrategy(count, type) {
+            this.wordsPerRound = count;
+            this.generateRounds();
+            this.initUI();
+            document.querySelectorAll('.tire-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tire-${type}`).classList.add('active');
+            this.updateSummary();
+        }
+
+        start() {
+            this.currentIndex = 0;
+            this.missCount = 0;
+            this.missedWordsLog = [];
+            this.startTime = Date.now();
+            this.startTimer();
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            
+            this.startVocabMode();
+        }
+
+        startVocabMode() {
+            if(this.vocabRounds.length === 0) { alert("Data Error"); this.returnToGrid(); return; }
+            this.isPitStopMode = false;
+            
+            const selector = document.getElementById('round-selector');
+            this.currentRoundIndex = parseInt(selector.value);
+            const selectedRound = this.vocabRounds[this.currentRoundIndex];
+            
+            this.isReverseMode = document.getElementById('reverse-mode').checked;
+
+            document.getElementById('circuit-name').innerText = selectedRound.name + (this.isReverseMode ? " [REV]" : "");
+            document.getElementById('question-label').innerText = this.isReverseMode ? "TRANSLATE TO KOBUN" : "MEANING";
+
+            this.questions = selectedRound.words.map(target => {
+                // ★多義語対応：ランダムに1つの意味を選ぶ
+                const randomMeaning = target.m[Math.floor(Math.random() * target.m.length)];
+                
+                const qText = this.isReverseMode ? randomMeaning : target.w;
+                const aText = this.isReverseMode ? target.w : randomMeaning;
+                
+                // 選択肢作成
+                const distractors = this.getDistractors(target, this.isReverseMode);
+                const options = [aText, ...distractors].sort(() => Math.random() - 0.5);
+                
+                const existingData = (this.allMistakes || []).find(item => item.word === target.w) || {};
+
+                return { 
+                    w: target.w, 
+                    mAll: target.m.join(' / '), // 全ての意味（記録用）
+                    qText: qText, 
+                    aText: aText, 
+                    o: options,
+                    docId: existingData.id || null, 
+                    interval: existingData.interval || 0,
+                    repetitions: existingData.repetitions || 0,
+                    easeFactor: existingData.easeFactor || 2.5
+                };
+            });
+            this.questions.sort(() => Math.random() - 0.5);
+            this.showQuestion();
+        }
+        
+        getDistractors(target, isReverse) {
+             const distractors = [];
+             // 自分以外の単語リスト
+             const otherWords = this.masterList.filter(item => item.w !== target.w);
+             
+             if(otherWords.length < 3) return ["Option A", "Option B", "Option C"]; 
+
+             let attempts = 0;
+             while (distractors.length < 3 && attempts < 100) {
+                 const r = otherWords[Math.floor(Math.random() * otherWords.length)];
+                 
+                 // Reverseモードなら単語(w)を、通常モードなら意味リスト(m)からランダムに1つ選ぶ
+                 const candidate = isReverse ? r.w : r.m[Math.floor(Math.random() * r.m.length)];
+                 
+                 if (!distractors.includes(candidate) && candidate !== (isReverse ? target.w : target.m)) {
+                     distractors.push(candidate);
+                 }
+                 attempts++;
+             }
+             return distractors;
+         }
+
+         showQuestion() {
+             const q = this.questions[this.currentIndex];
+             document.getElementById('question-number').innerText = `LAP ${this.currentIndex + 1} / ${this.questions.length}`;
+             
+             const targetDisplay = document.getElementById('target-word');
+             targetDisplay.innerText = q.qText;
+             
+             // フォント切り替え（古文単語なら明朝体、現代語ならゴシック寄り）
+             if (!this.isReverseMode) targetDisplay.classList.add('jp-font');
+             else targetDisplay.classList.remove('jp-font');
+
+             document.getElementById('progress-fill').style.width = `${(this.currentIndex / this.questions.length) * 100}%`;
+             document.getElementById('feedback').innerText = '';
+             
+             const container = document.getElementById('options-container');
+             container.innerHTML = '';
+             
+             q.o.forEach(opt => {
+                 const btn = document.createElement('button');
+                 // 選択肢の文字サイズ調整（現代語訳は長くなりがちなので）
+                 const fontClass = "text-lg md:text-xl jp-font";
+                 btn.className = `option-btn w-full flex items-center justify-center p-4 rounded-xl text-white font-bold shadow-lg ${fontClass} min-h-[80px]`;
+                 btn.innerText = opt;
+                 btn.onclick = () => this.handleAnswer(opt, q);
+                 container.appendChild(btn);
+             });
+         }
+
+         handleAnswer(selected, q) {
+             const btns = document.querySelectorAll('.option-btn');
+             btns.forEach(b => b.disabled = true);
+
+             const feedback = document.getElementById('feedback');
+             const isCorrect = (selected === q.aText);
+
+             // Firebase更新用（正解・不正解にかかわらず単語IDで更新）
+             if (window.handleSRSUpdate) {
+                 window.handleSRSUpdate(q, isCorrect);
+             }
+
+             if (isCorrect) {
+                 feedback.innerHTML = `<span class="text-[#39ff14] text-xs font-bold animate-pulse">🟣 PURPLE SECTOR (OK)</span>`;
+                 setTimeout(() => this.next(), 400); 
+             } else {
+                 this.missCount++;
+                 feedback.innerText = `WRONG: ${q.aText}`;
+                 feedback.className = "mt-4 text-center h-6 font-bold text-red-500 animate-pulse";
+                 this.missedWordsLog.push({ w: q.w, m: q.mAll });
+                 // 間違えた問題は後ろに追加して再出題
+                 this.questions.push(q);
+                 setTimeout(() => { 
+                     this.next(); 
+                 }, 1500);
+             }
+         }
+         
+         next() {
+             this.currentIndex++;
+             if (this.currentIndex < this.questions.length) this.showQuestion();
+             else this.finish();
+         }
+
+         startTimer() {
+             if (this.timerInterval) clearInterval(this.timerInterval);
+             this.timerInterval = setInterval(() => { document.getElementById('timer').innerText = ((Date.now() - this.startTime) / 1000).toFixed(2) + 's'; }, 50);
+         }
+
+         finish() {
+             clearInterval(this.timerInterval);
+             document.getElementById('quiz-screen').classList.add('hidden');
+             document.getElementById('result-screen').classList.remove('hidden');
+             
+             // スコア計算（追加されたペナルティ問題分は母数から除くなど調整可だが、ここでは単純計算）
+             const totalQs = this.questions.length; 
+             const uniqueQs = this.wordsPerRound; // 本当の問題数
+             const correctCount = uniqueQs - (this.missedWordsLog.length); // 初回正解数ベース
+             let accuracy = Math.max(0, (correctCount / uniqueQs) * 100);
+             
+             document.getElementById('accuracy-display').innerText = `${accuracy.toFixed(0)}%`;
+             document.getElementById('rank-text').innerText = `Misses: ${this.missedWordsLog.length}`;
+             
+             const review = document.getElementById('review-list');
+             review.innerHTML = this.missedWordsLog.length > 0 
+                ? this.missedWordsLog.map(item => `<div class="mb-2 text-sm p-2 bg-red-900/10 border border-red-900/30 rounded"><span class="font-bold text-white block jp-font">${item.w}</span><span class="text-gray-400">${item.m}</span></div>`).join('') 
+                : '<p class="text-green-500 font-bold">Perfect Lap. No Issues Detected.</p>';
+
+            // 次のラウンドへ進むボタン
+            const nextBtn = document.getElementById('next-round-btn');
+            if (this.currentRoundIndex + 1 < this.vocabRounds.length && !this.isPitStopMode) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.onclick = () => { 
+                    document.getElementById('round-selector').value = this.currentRoundIndex + 1; 
+                    this.start(); 
+                };
+            } else {
+                nextBtn.classList.add('hidden');
+            }
+             
+             if (window.fetchSRSItems) window.fetchSRSItems();
+             if (window.incrementDailyLaps) window.incrementDailyLaps(); 
+         }
+
+         returnToGrid() {
+             document.getElementById('result-screen').classList.add('hidden');
+             document.getElementById('start-screen').classList.remove('hidden');
+             if (window.fetchSRSItems) window.fetchSRSItems();
+         }
+        
+         // SRS復習モード（PIT STOP）
+         updatePitStopButton(count) {
+             const text = document.getElementById('mistake-count-display');
+             const overlay = document.getElementById('pit-alert-overlay');
+             if (count > 0) {
+                 text.innerText = "CRITICAL"; text.classList.remove('text-green-500'); text.classList.add('text-red-500');
+                 overlay.classList.remove('hidden'); 
+                 document.getElementById('tire-status-box').onclick = () => this.startPitStop();
+             } else {
+                 text.innerText = "OPTIMAL"; text.classList.add('text-green-500'); text.classList.remove('text-red-500');
+                 overlay.classList.add('hidden');
+                 document.getElementById('tire-status-box').onclick = null;
+             }
+         }
+        
+         startPitStop() {
+             if (!this.dueMistakes || this.dueMistakes.length === 0) return;
+             this.isPitStopMode = true; 
+             
+             this.questions = this.dueMistakes.map(item => {
+                 // 配列化されていない古いデータがある場合のガード
+                 const meanings = Array.isArray(item.meaning) ? item.meaning : [item.meaning];
+                 const randomMeaning = meanings[Math.floor(Math.random() * meanings.length)];
+                 const distractors = this.getDistractors({w: item.word, m: meanings}, false);
+                 const options = [randomMeaning, ...distractors].sort(() => Math.random() - 0.5);
+                 
+                 return { 
+                     w: item.word, 
+                     mAll: meanings.join(' / '), 
+                     qText: item.word, 
+                     aText: randomMeaning, 
+                     o: options, 
+                     docId: item.id, 
+                     interval: item.interval, 
+                     repetitions: item.repetitions, 
+                     easeFactor: item.easeFactor 
+                 };
+             });
+             
+             this.questions.sort(() => Math.random() - 0.5);
+             this.currentIndex = 0; this.missCount = 0; this.missedWordsLog = [];
+             document.getElementById('circuit-name').innerText = "SRS PIT STOP";
+             document.getElementById('start-screen').classList.add('hidden');
+             document.getElementById('quiz-screen').classList.remove('hidden');
+             this.startTime = Date.now();
+             this.startTimer();
+             this.showQuestion();
+         }
+        
+         openTelemetry() {
+             document.getElementById('start-screen').classList.add('hidden');
+             document.getElementById('telemetry-screen').classList.remove('hidden');
+             const mistakes = this.allMistakes || [];
+             const worstWords = [...mistakes].sort((a, b) => (a.easeFactor || 2.5) - (b.easeFactor || 2.5)).slice(0, 20);
+             const listContainer = document.getElementById('worst-words-list');
+             
+             if (worstWords.length === 0) listContainer.innerHTML = `<div class="text-gray-500 text-xs italic">No degradation.</div>`;
+             else {
+                 listContainer.innerHTML = worstWords.map(item => `
+                     <div class="flex justify-between items-center bg-gray-900/40 p-3 rounded-lg border-l-2 border-red-500 mb-1">
+                         <span class="font-bold text-gray-200 text-sm jp-font">${item.word}</span>
+                         <span class="text-[10px] text-gray-500 font-mono">EF:${(item.easeFactor||2.5).toFixed(2)}</span>
+                     </div>`).join('');
+             }
+             // グラフ描画
+             const ctx = document.getElementById('weaknessRadarChart').getContext('2d');
+             if (this.telemetryChart) this.telemetryChart.destroy();
+             const buckets = [0, 0, 0, 0, 0];
+             mistakes.forEach(m => {
+                 const int = m.interval || 0;
+                 if (int <= 1) buckets[0]++; else if (int <= 3) buckets[1]++; else if (int <= 7) buckets[2]++; else if (int <= 14) buckets[3]++; else buckets[4]++;
+             });
+             this.telemetryChart = new Chart(ctx, {
+                 type: 'bar',
+                 data: { labels: ['Danger', 'Warning', 'Stable', 'Good', 'Master'], datasets: [{ data: buckets, backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'], borderColor: '#333', borderWidth: 1 }] },
+                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8', font: {size: 10} } } } }
+             });
+         }
+         closeOverlay(id) {
+             document.getElementById(id).classList.add('hidden');
+             document.getElementById('start-screen').classList.remove('hidden');
+         }
+
+         openWordBook() {
+             document.getElementById('start-screen').classList.add('hidden');
+             document.getElementById('wordbook-screen').classList.remove('hidden');
+             this.bookmarkedOnly = false;
+             document.getElementById('wb-filter-btn').innerText = "ALL";
+             this.renderWordBook();
+         }
+
+         toggleBookFilter() {
+             this.bookmarkedOnly = !this.bookmarkedOnly;
+             document.getElementById('wb-filter-btn').innerText = this.bookmarkedOnly ? "FLAGGED" : "ALL";
+             this.renderWordBook();
+         }
+
+         renderWordBook() {
+             const listEl = document.getElementById('wb-list');
+             const query = document.getElementById('wb-search').value.toLowerCase().trim();
+             listEl.innerHTML = '';
+
+             // マスターデータとSRSデータのマージ
+             const merged = this.masterList.map((item, idx) => {
+                 const srs = (this.allMistakes || []).find(m => m.word === item.w);
+                 return { w: item.w, m: item.m.join(' / '), id: idx, srs: srs || null };
+             });
+
+             const filtered = merged.filter(item => {
+                 const matchQ = item.w.includes(query) || item.m.includes(query);
+                 const matchBook = this.bookmarkedOnly ? (item.srs && item.srs.bookmarked) : true;
+                 return matchQ && matchBook;
+             });
+
+             if (filtered.length === 0) {
+                 listEl.innerHTML = `<div class="text-gray-500 text-xs text-center py-4">No data found.</div>`;
+                 return;
+             }
+
+             const displayLimit = 50;
+             filtered.slice(0, displayLimit).forEach(item => {
+                 let statusColor = "bg-gray-700"; 
+                 if (item.srs) {
+                     if (item.srs.interval > 14) statusColor = "bg-green-500";
+                     else if (item.srs.interval > 3) statusColor = "bg-yellow-500";
+                     else statusColor = "bg-red-500";
+                 }
+                 const isBookmarked = item.srs && item.srs.bookmarked;
+
+                 const div = document.createElement('div');
+                 div.className = "flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800 hover:border-gray-600 transition-colors";
+                 div.innerHTML = `
+                     <div class="flex items-center gap-3 overflow-hidden">
+                         <div class="w-1 h-8 ${statusColor} rounded-full shrink-0"></div>
+                         <div class="text-left overflow-hidden">
+                             <div class="font-bold text-gray-200 text-lg jp-font truncate">${item.w}</div>
+                             <p class="text-xs text-gray-400 truncate">${item.m}</p>
+                         </div>
+                     </div>
+                     <button class="${isBookmarked ? 'text-red-500' : 'text-gray-600 hover:text-gray-400'} p-2" onclick="window.toggleBookmark('${item.w}')">
+                         ${isBookmarked ? '🚩' : '🏳️'}
+                     </button>
+                 `;
+                 listEl.appendChild(div);
+             });
+         }
+    }
+
+    window.quiz = new HybridQuiz();
+    </script>
+    
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+      import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+      import { 
+          getFirestore, collection, addDoc, doc, setDoc, query, where, getDocs, 
+          Timestamp, increment, runTransaction, onSnapshot, initializeFirestore, persistentLocalCache
+      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+      // ★★★ここにあなたのFirebaseプロジェクトの設定を貼り付けてください★★★
+      const firebaseConfig = {
+         apiKey: "AIzaSyC_30asSoRz9LAyYLuzYqxGhHJNWbuLvKE",
+         authDomain: "kobun-b0fb5.firebaseapp.com",
+        projectId: "kobun-b0fb5",
+        storageBucket: "kobun-b0fb5.firebasestorage.app",
+        messagingSenderId: "892077460039",
+        appId: "1:892077460039:web:d2fb94787344b49087ff62",
+        measurementId: "G-1RJJ1LPXS9"
+      };
+      // ★★★ここまで★★★
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = initializeFirestore(app, { localCache: persistentLocalCache({}) });
+
+      // 以下、Firebase連携ロジック（古文用に調整済み）
+      const gateScreen = document.getElementById('gate-screen');
+      const startScreen = document.getElementById('start-screen');
+      const loginStatus = document.getElementById('login-status');
+      
+      window.currentUser = null;
+      let unsubscribeStats = null;
+      const statsRef = doc(db, "stats", "daily_global_kobun"); // 統計IDを変更
+
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          window.currentUser = user;
+          loginStatus.innerText = "Syncing...";
+          
+          if (!unsubscribeStats) {
+              unsubscribeStats = onSnapshot(statsRef, (docSnap) => {
+                  if (docSnap.exists()) {
+                      const data = docSnap.data();
+                      const todayStr = new Date().toLocaleString('ja-JP').split(' ')[0];
+                      if (data.date === todayStr) {
+                          const display = document.getElementById('daily-laps-display');
+                          if(display) display.innerText = data.count;
+                      }
+                  }
+              });
+          }
+
+          try {
+              await window.fetchSRSItems();
+              document.getElementById('user-name').innerText = user.displayName || "DRIVER";
+              gateScreen.classList.add('hidden');
+              startScreen.classList.remove('hidden');
+          } catch (error) {
+              console.error(error);
+              loginStatus.innerText = "Connection Failed. Reloading...";
+          }
+        } else {
+            window.currentUser = null;
+            startScreen.classList.add('hidden');
+            gateScreen.classList.remove('hidden');
+        }
+      });
+
+      document.getElementById('gate-login-btn').addEventListener('click', async () => {
+        const provider = new GoogleAuthProvider();
+        try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); }
+      });
+
+      // SRSデータ取得
+      window.fetchSRSItems = async () => {
+        if (!window.currentUser) return;
+        // キャッシュキーを変更して混信を防ぐ
+        const CACHE_KEY = `kobun_srs_${window.currentUser.uid}`;
+        const mistakesRef = collection(db, "users", window.currentUser.uid, "kobun_mistakes"); // コレクション名を変更
+
+        try {
+            const snapshot = await getDocs(mistakesRef);
+            let allItems = [];
+            snapshot.forEach(docSnap => {
+                const d = docSnap.data();
+                const nrSec = d.nextReview && d.nextReview.seconds ? d.nextReview.seconds : (Date.now()/1000);
+                allItems.push({ id: docSnap.id, ...d, nextReviewSeconds: nrSec });
+            });
+            
+            // 古文アプリにデータをセット
+            if(window.quiz) {
+                window.quiz.allMistakes = allItems;
+                const nowTs = Date.now() / 1000;
+                window.quiz.dueMistakes = allItems.filter(item => item.nextReviewSeconds <= nowTs);
+                window.quiz.updatePitStopButton(window.quiz.dueMistakes.length);
+            }
+        } catch (e) { console.error("Fetch Error:", e); }
+      };
+
+      // SRS更新処理
+      window.handleSRSUpdate = async (q, isCorrect) => {
+        if (!window.currentUser) return;
+        
+        // IDは単語そのもの（またはBase64）にする
+        const safeId = btoa(encodeURIComponent(q.w)).replace(/\//g, '_').replace(/\+/g, '-');
+        const userRef = collection(db, "users", window.currentUser.uid, "kobun_mistakes");
+        const targetRef = doc(userRef, safeId);
+
+        const current = { 
+            interval: q.interval || 0, 
+            repetitions: q.repetitions || 0, 
+            easeFactor: q.easeFactor || 2.5 
+        };
+
+        let nextInterval, nextRepetitions, nextEaseFactor;
+
+        if (!isCorrect) {
+            nextRepetitions = 0; 
+            nextInterval = 1; 
+            nextEaseFactor = Math.max(1.3, current.easeFactor - 0.2); 
+        } else {
+            nextRepetitions = current.repetitions + 1;
+            nextEaseFactor = Math.min(3.0, Math.max(1.3, current.easeFactor + 0.1));
+            if (nextRepetitions === 1) nextInterval = 1;
+            else if (nextRepetitions === 2) nextInterval = 4; // 少し緩めに調整
+            else nextInterval = Math.round(current.interval * nextEaseFactor);
+        }
+
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + nextInterval);
+
+        // Firestoreに保存（meaningには全意味リストを保存）
+        setDoc(targetRef, { 
+            word: q.w, 
+            meaning: q.mAll ? q.mAll.split(' / ') : [q.aText], // 配列として保存
+            nextReview: Timestamp.fromDate(nextDate), 
+            interval: nextInterval, 
+            repetitions: nextRepetitions, 
+            easeFactor: nextEaseFactor, 
+            lastReviewed: Timestamp.now() 
+        }, { merge: true });
+      };
+
+      // ブックマーク処理
+      window.toggleBookmark = async (word) => {
+          if (!window.currentUser) return;
+          const safeId = btoa(encodeURIComponent(word)).replace(/\//g, '_').replace(/\+/g, '-');
+          const targetRef = doc(collection(db, "users", window.currentUser.uid, "kobun_mistakes"), safeId);
+          
+          let item = window.quiz.allMistakes.find(m => m.word === word);
+          const newVal = !(item && item.bookmarked);
+          
+          // UI即時更新
+          if(item) item.bookmarked = newVal;
+          else {
+              // 新規登録の場合
+              const masterItem = window.quiz.masterList.find(m => m.w === word);
+              if(masterItem) {
+                  item = { word: word, meaning: masterItem.m, bookmarked: newVal, interval:0, repetitions:0, easeFactor:2.5, nextReviewSeconds: Date.now()/1000 };
+                  window.quiz.allMistakes.push(item);
+              }
+          }
+          window.quiz.renderWordBook();
+
+          setDoc(targetRef, { 
+              word: word, 
+              bookmarked: newVal,
+              // 既存データがなければ初期値を入れる
+              meaning: item ? item.meaning : [],
+              interval: item ? item.interval : 0,
+              repetitions: item ? item.repetitions : 0,
+              easeFactor: item ? item.easeFactor : 2.5,
+              nextReview: item && item.nextReview ? item.nextReview : Timestamp.now()
+          }, { merge: true });
+      };
+
+      // 全体周回数カウント
+      window.incrementDailyLaps = async () => {
+          if (!window.currentUser) return; 
+          const todayStr = new Date().toLocaleString('ja-JP').split(' ')[0];
+          try {
+              await runTransaction(db, async (transaction) => {
+                  const docSnap = await transaction.get(statsRef);
+                  if (!docSnap.exists() || docSnap.data().date !== todayStr) {
+                      transaction.set(statsRef, { count: 1, date: todayStr });
+                  } else {
+                      transaction.update(statsRef, { count: increment(1) });
+                  }
+              });
+          } catch (e) { console.error(e); }
+      };
+    </script>
+</body>
+</html>
