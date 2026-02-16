@@ -1,5 +1,5 @@
 // キャッシュ名を変更して、古い英語アプリのデータと衝突しないようにします
-const CACHE_NAME = 'kobun-gp-v2'; 
+const CACHE_NAME = 'kobun-gp-v3'; 
 
 const ASSETS_TO_CACHE = [
   './',
