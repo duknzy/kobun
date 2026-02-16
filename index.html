@@ -15,9 +15,23 @@
         
         :root { --f1-red: #e10600; --rb-navy: #0b0e14; }
 
-        html, body {
-        height: 100%; width: 100%; overflow: hidden; 
-        background-color: transparent; /* ← 透明にする */
+        /* 【修正】html と body の設定を以下のように変更 */
+    
+    html {
+        /* アプリ全体の裏地を暗くして、白い隙間が出ないようにする */
+        background-color: #0b0e14; 
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    body {
+        height: 100%; 
+        width: 100%; 
+        overflow: hidden; 
+        background-color: transparent; /* ここは透明のまま（動画を見せるため） */
+        margin: 0; 
+        padding: 0;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
         -webkit-user-select: none; user-select: none;
         touch-action: manipulation;
@@ -36,7 +50,7 @@
         .jp-font { font-family: 'Noto Sans JP', sans-serif; }
 
         .race-card {
-            background: rgba(11, 14, 20, 0.85);
+            background: rgba(11, 14, 20, 0.3);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -697,15 +711,26 @@
             });
         }
 
+        // 【修正】generateRoundsメソッドをこれに書き換え
         generateRounds() {
             const wordCopy = [...this.masterList]; 
             this.vocabRounds = [];
             let roundNum = 1;
+            let currentCount = 1; // 単語番号のカウンター
+
             while (wordCopy.length > 0) {
                 const chunk = wordCopy.splice(0, this.wordsPerRound);
                 if (chunk.length > 0) {
-                    this.vocabRounds.push({ id: roundNum, name: `SECTOR ${roundNum}`, words: chunk });
+                    const start = currentCount;
+                    const end = currentCount + chunk.length - 1;
+                    // 名前を "SECTOR 1 (No.1~20)" のように変更
+                    this.vocabRounds.push({ 
+                        id: roundNum, 
+                        name: `SECTOR ${roundNum} (No.${start}~${end})`, 
+                        words: chunk 
+                    });
                     roundNum++;
+                    currentCount += chunk.length;
                 }
             }
         }
