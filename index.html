@@ -16,13 +16,12 @@
         :root { --f1-red: #e10600; --rb-navy: #0b0e14; }
 
         html, body {
-            height: 100%; width: 100%; overflow: hidden; 
-            background-color: #0b0e14; color: #e2e8f0;
-            /* 全体の基本フォントを Noto Sans JP に設定 */
-            font-family: 'Noto Sans JP', sans-serif;
-            -webkit-user-select: none; user-select: none;
-            touch-action: manipulation;
-        }
+        height: 100%; width: 100%; overflow: hidden; 
+        background-color: transparent; /* ← 透明にする */
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-user-select: none; user-select: none;
+        touch-action: manipulation;
+    }
 
         /* 背景動画の設定 */
         #bg-video {
