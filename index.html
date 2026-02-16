@@ -16,7 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Zen+Antique&display=swap');
+        /* 数字や英語のF1っぽさは残しつつ、日本語はゴシック体へ */
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
         
         :root {
             --f1-red: #e10600;
@@ -31,7 +32,8 @@
             overflow: hidden; 
             background-color: transparent;
             color: #e2e8f0;
-            font-family: 'Inter', sans-serif;
+            /* ゴシック体指定 */
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
             -webkit-font-smoothing: antialiased;
             touch-action: manipulation;
             overscroll-behavior: none;
@@ -63,8 +65,11 @@
             background-color: transparent;
         }
 
+        /* 数字や英語ロゴ用 */
         .f1-font { font-family: 'Chakra Petch', sans-serif; }
-        .jp-font { font-family: 'Zen Antique', serif; } /* 古文らしいフォント */
+        
+        /* 日本語用（ゴシック） */
+        .jp-font { font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; font-weight: 700; }
 
         #app {
             height: 100%;
@@ -78,9 +83,9 @@
         #app::-webkit-scrollbar { display: none; }
 
         .race-card {
-            background: rgba(11, 14, 20, 0.1);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            background: rgba(11, 14, 20, 0.85); /* 視認性向上のため少し濃く */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
@@ -94,17 +99,6 @@
         }
         .option-btn:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.1); }
         .option-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-        .letter-chip {
-            min-width: 40px;
-            height: 45px;
-            font-size: 1.25rem;
-            font-family: 'Zen Antique', serif;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
 
         .accent-f1 { accent-color: var(--f1-red); }
         .glitch-text { text-shadow: 2px 0 rgba(255,0,0,0.5), -2px 0 rgba(0,255,255,0.5); }
@@ -123,13 +117,6 @@
         }
         .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-6px); }
-            40%, 80% { transform: translateX(6px); }
-        }
-        .animate-shake { animation: shake 0.4s ease-in-out; }
-        
         .wb-scroll::-webkit-scrollbar { width: 4px; }
         .wb-scroll::-webkit-scrollbar-track { background: #1a1a1a; }
         .wb-scroll::-webkit-scrollbar-thumb { background: #e10600; border-radius: 4px; }
@@ -144,70 +131,6 @@
             max-height: 80vh;
             overflow-y: auto;
             opacity: 1;
-        }
-
-        /* --- BLIND RADIO BROADCAST STYLE --- */
-        .radio-box {
-            background: linear-gradient(90deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.95) 100%);
-            border-left: 4px solid #e10600; 
-            border-radius: 4px;
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            max-width: 500px;
-            width: 100%;
-            margin: 0 auto;
-            position: relative;
-            overflow: hidden;
-            animation: slideInRight 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
-        .radio-box::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 3px);
-            pointer-events: none;
-        }
-
-        .radio-content {
-            text-align: left;
-            z-index: 2;
-        }
-
-        .waveform {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            height: 30px;
-            z-index: 2;
-        }
-
-        .wave-bar {
-            width: 6px;
-            background: #00f0ff; 
-            border-radius: 2px;
-            animation: audioWave 0.8s infinite ease-in-out;
-            box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
-        }
-
-        .wave-bar:nth-child(1) { animation-delay: 0.1s; height: 40%; }
-        .wave-bar:nth-child(2) { animation-delay: 0.3s; height: 70%; }
-        .wave-bar:nth-child(3) { animation-delay: 0.0s; height: 100%; }
-        .wave-bar:nth-child(4) { animation-delay: 0.4s; height: 60%; }
-        .wave-bar:nth-child(5) { animation-delay: 0.2s; height: 30%; }
-
-        @keyframes audioWave {
-            0%, 100% { height: 20%; opacity: 0.5; }
-            50% { height: 100%; opacity: 1; }
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
         }
 
         @media only screen and (max-width: 768px) {
@@ -363,32 +286,11 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 gap-4">
                              <label class="flex items-center justify-between cursor-pointer group bg-black/30 p-3 rounded-lg border border-gray-800 hover:border-gray-600 transition-colors">
                                 <span class="text-xs font-bold text-gray-300 group-hover:text-cyan-400 transition-colors flex items-center gap-2"><span class="text-cyan-400">🔄</span> REVERSE (現代語⇒古文)</span>
-                                <input type="checkbox" id="reverse-mode" class="accent-f1 w-5 h-5 cursor-pointer" onchange="quiz.toggleSpellingOption(); quiz.updateSummary()">
+                                <input type="checkbox" id="reverse-mode" class="accent-f1 w-5 h-5 cursor-pointer" onchange="quiz.updateSummary()">
                             </label>
-                            
-                             <label class="flex items-center justify-between cursor-pointer group bg-black/30 p-3 rounded-lg border border-gray-800 hover:border-gray-600 transition-colors">
-                                <span class="text-xs font-bold text-gray-300 group-hover:text-green-400 transition-colors flex items-center gap-2"><span class="text-green-500">🔊</span> VOICE GUIDE</span>
-                                <input type="checkbox" id="audio-mode" class="accent-f1 w-5 h-5 cursor-pointer" checked>
-                            </label>
-
-                             <label class="flex items-center justify-between cursor-pointer group bg-black/30 p-3 rounded-lg border border-gray-800 hover:border-gray-600 transition-colors">
-                                <span class="text-xs font-bold text-gray-300 group-hover:text-purple-400 transition-colors flex items-center gap-2">
-                                    <span class="text-purple-500">🎧</span> BLIND RADIO
-                                </span>
-                                <input type="checkbox" id="radio-mode" class="accent-f1 w-5 h-5 cursor-pointer" onchange="quiz.updateSummary()">
-                            </label>
-                            
-                            <div id="spelling-option-container" class="hidden">
-                                 <label class="flex items-center justify-between cursor-pointer group bg-black/30 p-3 rounded-lg border border-gray-800 hover:border-gray-600 transition-colors">
-                                    <span class="text-xs font-bold text-gray-300 group-hover:text-pink-400 transition-colors flex items-center gap-2">
-                                        <span class="text-pink-500">🔠</span> MANUAL SHIFT (構成)
-                                    </span>
-                                    <input type="checkbox" id="spelling-mode" class="accent-f1 w-5 h-5 cursor-pointer" onchange="quiz.updateSummary()">
-                                </label>
-                            </div>
                         </div>
 
                         <div class="pt-4 border-t border-gray-700 relative">
@@ -438,7 +340,7 @@
             </div>
         </div>
 
-        <div id="quiz-screen" class="hidden race-card p-6 rounded-2xl shadow-2xl relative flex flex-col justify-between my-auto min-h-[600px] w-full max-w-5xl mx-auto">
+        <div id="quiz-screen" class="hidden race-card p-6 rounded-2xl shadow-2xl relative flex flex-col justify-between my-auto min-h-[500px] w-full max-w-5xl mx-auto">
             <div class="flex justify-between items-start mb-6">
                 <div class="flex flex-col text-left">
                     <span id="circuit-name" class="f1-font text-[10px] text-gray-400 uppercase tracking-widest">ROUND 1</span>
@@ -457,20 +359,9 @@
                 <div class="flex-grow flex flex-col items-center justify-center mb-8 relative">
                     <div class="absolute -top-6 text-gray-500 text-[10px] uppercase tracking-widest" id="question-label">Target</div>
                     <h2 id="target-word" class="jp-font text-5xl md:text-7xl font-bold text-white tracking-wide drop-shadow-xl break-words px-2 text-center transition-all"></h2>
-                    <button id="speak-btn" class="mt-6 text-gray-400 hover:text-cyan-400 transition-colors p-4 rounded-full border border-gray-700 bg-black/40 hover:bg-black/60 active:scale-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                    </button>
                 </div>
                 
                 <div id="options-container" class="grid grid-cols-2 gap-4 max-w-4xl mx-auto w-full"></div>
-
-                <div id="spelling-interface" class="hidden w-full flex flex-col items-center">
-                    <div id="spelling-slots" class="flex flex-wrap gap-2 justify-center mb-8 min-h-[70px] p-4 bg-black/30 rounded-xl border-b-2 border-dashed border-gray-600 w-full transition-all">
-                        </div>
-                    <div id="spelling-pool" class="flex flex-wrap gap-3 justify-center w-full max-w-4xl">
-                        </div>
-                    <p class="text-[10px] text-gray-500 mt-6 uppercase">Tip: Tap slot to Undo</p>
-                </div>
             </div>
 
             <div id="feedback" class="h-8 mt-4 flex items-center justify-center text-sm font-bold tracking-wider uppercase"></div>
@@ -501,8 +392,9 @@
     </div>
 
     <script>
+      // ★ここに古文データを貼り付けてください
       const rawData = `
-あいなし: つまらない | 筋違いだ | (副詞的に)むやみに | わけもなく
+      あいなし: つまらない | 筋違いだ | (副詞的に)むやみに | わけもなく
 あからさまなり: ほんのちょっと
 あきらむ: 明らかにする | はっきり見る
 あく: 満足する
@@ -927,7 +819,6 @@
             this.masterList = [];
             this.vocabRounds = [];
             this.currentRoundIndex = 0;
-            this.isLocked = false;
             this.questions = [];
             this.currentIndex = 0;
             this.missCount = 0;
@@ -943,33 +834,6 @@
 
             this.isPitStopMode = false;
             this.isReverseMode = false;
-            this.isSpellingMode = false; 
-            this.spellingAns = []; 
-            this.spellingPoolState = []; 
-            
-            // BLIND RADIO
-            this.isRadioMode = false;
-            const radioCheck = document.getElementById('radio-mode');
-            if(radioCheck) {
-                radioCheck.addEventListener('change', (e) => {
-                    this.isRadioMode = e.target.checked;
-                    if(this.isRadioMode) this.isAutoAudio = true; 
-                });
-            }
-
-            this.isAutoAudio = localStorage.getItem('kobun_auto_audio') !== 'false';
-            this.synth = window.speechSynthesis;
-            this.japaneseVoices = [];
-            if (this.synth) { this.synth.onvoiceschanged = () => this.loadVoices(); this.loadVoices(); }
-
-            const audioCheck = document.getElementById('audio-mode');
-            if(audioCheck) {
-                audioCheck.checked = this.isAutoAudio;
-                audioCheck.addEventListener('change', (e) => {
-                    this.isAutoAudio = e.target.checked;
-                    localStorage.setItem('kobun_auto_audio', this.isAutoAudio);
-                });
-            }
             
             document.getElementById('wb-search').addEventListener('input', () => this.renderWordBook());
             document.getElementById('wb-start').addEventListener('input', () => this.renderWordBook());
@@ -979,23 +843,6 @@
             this.generateRounds();
             this.initUI();
             this.initSearch(); 
-        }
-
-        loadVoices() {
-            if(!this.synth) return;
-            const allVoices = this.synth.getVoices();
-            this.japaneseVoices = allVoices.filter(v => v.lang.startsWith('ja'));
-        }
-
-        speak(text) {
-            if (!this.synth) return;
-            this.synth.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            if(this.japaneseVoices.length > 0) utterance.voice = this.japaneseVoices[0];
-            utterance.rate = 1.0; 
-            utterance.pitch = 1.0;
-            this.synth.speak(utterance);
         }
 
         parseData() {
@@ -1010,7 +857,9 @@
                 if (sep !== -1) {
                     const w = line.substring(0, sep).trim();
                     const mRaw = line.substring(sep + 1).trim();
-                    this.masterList.push({ w: w, m: mRaw });
+                    // パイプで区切って配列として保持
+                    const mList = mRaw.split('|').map(s => s.trim());
+                    this.masterList.push({ w: w, m: mList });
                 }
             });
         }
@@ -1064,10 +913,8 @@
             
             const tire = this.wordsPerRound;
             const rev = document.getElementById('reverse-mode').checked ? "REV" : "STD";
-            const radio = document.getElementById('radio-mode').checked ? "+RADIO" : "";
-            const spell = document.getElementById('spelling-mode').checked && document.getElementById('reverse-mode').checked ? "+MANUAL" : "";
             
-            document.getElementById('strategy-summary').innerText = `${roundName} | ${tire} Qs | ${rev}${radio}${spell}`;
+            document.getElementById('strategy-summary').innerText = `${roundName} | ${tire} Qs | ${rev}`;
         }
 
         toggleStrategyMenu() {
@@ -1116,14 +963,13 @@
                 const q = e.target.value.toLowerCase().trim();
                 if (!q) { results.classList.add('hidden'); return; }
                 const hits = this.masterList.map((item, index) => ({ ...item, i: index + 1 }))
-                    .filter(item => item.w.toLowerCase().includes(q) || item.m.toLowerCase().includes(q))
+                    .filter(item => item.w.toLowerCase().includes(q) || item.m.some(m => m.toLowerCase().includes(q)))
                     .slice(0, 50);
                 if (hits.length > 0) {
                     results.classList.remove('hidden');
                     results.innerHTML = hits.map(h => `
-                        <div onclick="quiz.speak('${h.w}')" class="p-3 border-b border-gray-800 active:bg-gray-800 cursor-pointer flex justify-between items-center group hover:bg-white/5 transition-colors">
-                            <div class="text-left"><div class="flex items-baseline gap-2"><span class="text-[10px] text-yellow-500 font-mono opacity-70">No.${h.i}</span><span class="text-red-400 font-bold text-xs jp-font">${h.w}</span></div><span class="text-gray-400 text-[10px] pl-1 truncate block max-w-[200px]">${h.m}</span></div>
-                            <button class="text-[8px] bg-gray-700 text-white px-2 py-1 rounded-full uppercase">Listen</button>
+                        <div class="p-3 border-b border-gray-800 flex justify-between items-center group hover:bg-white/5 transition-colors">
+                            <div class="text-left"><div class="flex items-baseline gap-2"><span class="text-[10px] text-yellow-500 font-mono opacity-70">No.${h.i}</span><span class="text-red-400 font-bold text-xs jp-font">${h.w}</span></div><span class="text-gray-400 text-[10px] pl-1 truncate block max-w-[200px]">${h.m.join(' / ')}</span></div>
                         </div>`).join('');
                 } else {
                     results.classList.remove('hidden');
@@ -1179,17 +1025,6 @@
             this.updateSummary();
         }
 
-        toggleSpellingOption() {
-            const isRev = document.getElementById('reverse-mode').checked;
-            const spellOpt = document.getElementById('spelling-option-container');
-            if (isRev) {
-                spellOpt.classList.remove('hidden');
-            } else {
-                spellOpt.classList.add('hidden');
-                document.getElementById('spelling-mode').checked = false;
-            }
-        }
-
         start() {
             this.currentIndex = 0;
             this.missCount = 0;
@@ -1219,30 +1054,28 @@
             }
 
             this.isReverseMode = document.getElementById('reverse-mode').checked;
-            this.isSpellingMode = document.getElementById('spelling-mode').checked && this.isReverseMode;
-            this.isRadioMode = document.getElementById('radio-mode').checked;
 
-            let modeTitle = "";
-            if (this.isRadioMode) modeTitle = " [BLIND RADIO]";
-            else if (this.isSpellingMode) modeTitle = " [MANUAL SHIFT]";
-            else if (this.isReverseMode) modeTitle = " [REV]";
-
+            let modeTitle = this.isReverseMode ? " [REV]" : "";
             document.getElementById('circuit-name').innerText = selectedRound.name + modeTitle;
             document.getElementById('question-label').innerText = this.isReverseMode ? "TRANSLATE" : "MEANING";
 
             this.questions = selectedRound.words.map(target => {
-                const qText = this.isReverseMode ? target.m : target.w;
-                const aText = this.isReverseMode ? target.w : target.m;
+                // 多義語の中から1つだけランダムに選ぶ
+                const randomMeaning = target.m[Math.floor(Math.random() * target.m.length)];
+                const fullMeanings = target.m; // 保存用に全意味も持っておく
+
+                const qText = this.isReverseMode ? randomMeaning : target.w;
+                const aText = this.isReverseMode ? target.w : randomMeaning;
                 
-                const options = this.isSpellingMode 
-                    ? [] 
-                    : [aText, ...this.getDistractors(target, this.isReverseMode)].sort(() => Math.random() - 0.5);
+                const distractors = this.getDistractors(target, this.isReverseMode);
+                const options = [aText, ...distractors].sort(() => Math.random() - 0.5);
                 
                 const existingData = (this.allMistakes || []).find(item => item.word === target.w || item.w === target.w) || {};
 
                 return { 
                     w: target.w, 
-                    m: target.m, 
+                    m: fullMeanings, // 記録用（配列）
+                    displayM: randomMeaning, // 表示用（単一）
                     qText: qText, 
                     aText: aText, 
                     o: options,
@@ -1260,14 +1093,33 @@
              const distractors = [];
              if (this.masterList.length < 4) return ["Option A", "Option B", "Option C"]; 
 
-             const targetString = isReverse ? targetWord.w : targetWord.m;
+             // ターゲットの「正解文字列」
+             // 通常モードなら：targetWord.w が問題。targetWord.m (配列) のどれかが正解。
+             // ダミー選択肢は他の単語の m (配列) から1つ選ぶ。
              
-             // 単純ランダム抽出
+             // Reverseモードなら：targetWord.m (配列) のどれかが問題。targetWord.w が正解。
+             // ダミー選択肢は他の単語の w を選ぶ。
+
              let attempts = 0;
              while (distractors.length < 3 && attempts < 100) {
                  const r = this.masterList[Math.floor(Math.random() * this.masterList.length)];
-                 const candidate = isReverse ? r.w : r.m;
-                 if (!distractors.includes(candidate) && candidate !== targetString) {
+                 
+                 // 正解候補と同じ単語データならスキップ
+                 if (r.w === targetWord.w) {
+                     attempts++;
+                     continue;
+                 }
+
+                 let candidate;
+                 if (isReverse) {
+                     // 答えは単語そのもの
+                     candidate = r.w;
+                 } else {
+                     // 答えは意味（多義語の中から1つ選ぶ）
+                     candidate = r.m[Math.floor(Math.random() * r.m.length)];
+                 }
+
+                 if (!distractors.includes(candidate)) {
                      distractors.push(candidate);
                  }
                  attempts++;
@@ -1280,230 +1132,44 @@
              document.getElementById('question-number').innerText = `LAP ${this.currentIndex + 1} / ${this.questions.length}`;
              
              const targetDisplay = document.getElementById('target-word');
+             targetDisplay.innerHTML = "";
+             targetDisplay.innerText = q.qText;
+             
+             // 文字数でサイズ調整
+             const len = q.qText.length;
+             let sizeClass = "text-5xl md:text-7xl";
+             if(len > 10) sizeClass = "text-3xl md:text-5xl";
+             if(len > 20) sizeClass = "text-xl md:text-3xl";
 
-             // BLIND RADIO
-             if (this.isRadioMode) {
-                 targetDisplay.className = "w-full flex justify-center py-4"; 
-                 targetDisplay.innerHTML = `
-                    <div class="radio-box">
-                        <div class="radio-content">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="bg-white text-black text-[10px] font-bold px-1.5 rounded-sm">LIVE</span>
-                                <span class="text-gray-400 text-[10px] font-bold uppercase tracking-widest font-mono">TEAM RADIO</span>
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-white f1-font text-2xl font-bold italic tracking-wider">GP <span class="text-gray-600 text-sm not-italic mx-1">➜</span> YOU</span>
-                            </div>
-                        </div>
-                        
-                        <div class="waveform">
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                        </div>
-                    </div>
-                 `;
-                 setTimeout(() => this.speak(q.w), 300);
-             } else {
-                 targetDisplay.innerHTML = "";
-                 targetDisplay.innerText = q.qText;
-                 // フォントサイズ調整: 長い意味の場合は小さくする
-                 const len = q.qText.length;
-                 let sizeClass = "text-5xl md:text-6xl";
-                 if(len > 10) sizeClass = "text-3xl md:text-4xl";
-                 if(len > 20) sizeClass = "text-xl md:text-2xl";
-
-                 targetDisplay.className = `jp-font ${sizeClass} font-bold text-white tracking-wide drop-shadow-lg break-words px-2 text-center leading-tight`;
-                 
-                 if (this.isAutoAudio && !this.isReverseMode && !this.isSpellingMode) setTimeout(() => this.speak(q.w), 200);
-             }
+             targetDisplay.className = `jp-font ${sizeClass} font-bold text-white tracking-wide drop-shadow-lg break-words px-2 text-center leading-tight`;
 
              this.lapStartTime = Date.now(); 
 
              document.getElementById('progress-fill').style.width = `${(this.currentIndex / this.questions.length) * 100}%`;
              document.getElementById('feedback').innerText = '';
              
-             const speakBtn = document.getElementById('speak-btn');
-             speakBtn.onclick = () => this.speak(q.w);
-
-             const stdContainer = document.getElementById('options-container');
-             const spellContainer = document.getElementById('spelling-interface');
-
-             if (this.isSpellingMode) {
-                 stdContainer.classList.add('hidden');
-                 spellContainer.classList.remove('hidden');
-                 this.renderSpellingInterface(q);
-             } else {
-                 stdContainer.classList.remove('hidden');
-                 spellContainer.classList.add('hidden');
-                 this.renderStandardOptions(q, stdContainer);
-             }
-         }
-
-         // 手動シフト（ひらがな並べ替え）
-         renderSpellingInterface(q) {
-             const slotsEl = document.getElementById('spelling-slots');
-             const poolEl = document.getElementById('spelling-pool');
-             
-             if (this.spellingAns.length === 0) {
-                 slotsEl.innerHTML = '';
-                 poolEl.innerHTML = '';
-                 slotsEl.classList.remove('correct-lane', 'wrong-lane');
-                 this.isLocked = false;
-                 
-                 const targetWord = q.w.trim();
-                 const letters = targetWord.split('');
-                 this.spellingPoolState = letters.map((char, i) => ({ char, id: i, used: false })).sort(() => Math.random() - 0.5);
-             } else {
-                 slotsEl.innerHTML = '';
-                 poolEl.innerHTML = '';
-             }
-
-             const targetLen = q.w.trim().length;
-             for(let i=0; i<targetLen; i++) {
-                 const slot = document.createElement('div');
-                 const charObj = this.spellingAns[i]; 
-                 
-                 if (charObj) {
-                     slot.className = "w-10 h-12 border border-white bg-gray-800 rounded mx-1 flex items-center justify-center text-xl font-bold text-white cursor-pointer active:scale-95 transition-transform jp-font";
-                     slot.innerText = charObj.char;
-                     slot.onclick = () => this.handleSpellingUndo(i, q);
-                 } else {
-                     slot.className = "w-10 h-12 border-b-2 border-gray-600 mx-1 flex items-center justify-center text-xl font-bold text-gray-600";
-                     slot.innerText = "_";
-                 }
-                 slotsEl.appendChild(slot);
-             }
-
-             this.spellingPoolState.forEach((item) => {
-                 const btn = document.createElement('button');
-                 btn.className = "letter-chip bg-gray-800 text-white rounded shadow-md border border-gray-600 active:bg-gray-600 transition-all w-12 h-12 text-xl jp-font";
-                 btn.innerText = item.char;
-                 
-                 if (item.used) {
-                     btn.classList.add('opacity-0', 'pointer-events-none');
-                 } else {
-                     btn.onclick = () => this.handleSpellingClick(item, q);
-                 }
-                 poolEl.appendChild(btn);
-             });
-         }
-
-         handleSpellingClick(item, q) {
-             if (this.isLocked) return;
-             item.used = true;
-             this.spellingAns.push(item);
-             this.renderSpellingInterface(q);
-             if (this.spellingAns.length === q.w.trim().length) {
-                 this.checkSpellingWin(q);
-             }
-         }
-
-         handleSpellingUndo(index, q) {
-             if (this.isLocked) return; 
-             const removedItem = this.spellingAns.splice(index, 1)[0];
-             const poolItem = this.spellingPoolState.find(p => p.id === removedItem.id);
-             if (poolItem) poolItem.used = false;
-             this.renderSpellingInterface(q);
-         }
-
-         checkSpellingWin(q) {
-             const userWord = this.spellingAns.map(a => a.char).join('');
-             const targetWord = q.w.trim();
-             const slotsEl = document.getElementById('spelling-slots');
-
-             if (userWord === targetWord) {
-                 this.isLocked = true;
-                 slotsEl.classList.add('correct-lane');
-                 const feedback = document.getElementById('feedback');
-                 feedback.innerHTML = `<span class="text-[#39ff14] text-xs font-bold animate-pulse">🟣 PERFECT SHIFT</span>`;
-                 this.speak(q.w);
-                 
-                 this.currentStreak++;
-                 if (this.currentStreak > this.maxStreak) this.maxStreak = this.currentStreak;
-                 
-                 const timeTaken = (Date.now() - this.lapStartTime) / 1000;
-                 if (window.handleSRSUpdate) {
-                     window.handleSRSUpdate({ ...q, timeTaken: timeTaken }, true);
-                 }
-
-                 setTimeout(() => {
-                     this.currentIndex++;
-                     this.spellingAns = []; 
-                     if (this.currentIndex < this.questions.length) this.showVocabQuestion();
-                     else this.finish();
-                 }, 600);
-
-             } else {
-                 this.isLocked = true; 
-                 this.missCount++;
-                 this.currentStreak = 0;
-                 
-                 slotsEl.classList.add('wrong-lane', 'animate-shake');
-                 document.getElementById('feedback').innerHTML = `<span class="text-red-500 text-xs font-bold">GEARBOX DAMAGE</span>`;
-
-                 if (!this.missedWordsLog.find(item => item.w === q.w)) this.missedWordsLog.push({ w: q.w, m: q.m });
-                 
-                 if (window.handleSRSUpdate) {
-                     window.handleSRSUpdate({ ...q, timeTaken: 5.0 }, false);
-                 }
-
-                 setTimeout(() => {
-                     this.isLocked = false;
-                     slotsEl.classList.remove('wrong-lane', 'animate-shake');
-                     document.getElementById('feedback').innerText = '';
-                     this.spellingAns = [];
-                     this.spellingPoolState.forEach(p => p.used = false);
-                     this.renderSpellingInterface(q); 
-                 }, 1000);
-             }
-         }
-
-         renderStandardOptions(q, container) {
+             const container = document.getElementById('options-container');
              container.innerHTML = '';
              
-             const renderBtns = () => {
-                 container.innerHTML = '';
-                 q.o.forEach(opt => {
-                     const btn = document.createElement('button');
-                     const isJp = /[あ-んア-ン一-龥]/.test(opt);
-                     const fontClass = isJp ? "jp-font tracking-widest" : "text-sm";
-                     // 文字数でサイズ調整
-                     const textSize = opt.length > 20 ? "text-xs" : (opt.length > 10 ? "text-sm" : "text-lg");
-                     
-                     btn.className = `option-btn w-full h-full flex items-center justify-center p-5 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 active:border-red-500 font-bold shadow-lg ${fontClass} ${textSize} transition-all min-h-[80px]`;
-                     btn.innerText = opt;
-                     btn.onclick = () => this.handleVocabAnswer(opt, q);
-                     container.appendChild(btn);
-                 });
-             };
-
-             if (this.isRadioMode) {
-                 renderBtns();
-             } else {
-                 const revealBtn = document.createElement('button');
-                 revealBtn.className = 'col-span-2 w-full h-32 bg-gray-900/50 border-2 border-dashed border-gray-600 rounded-xl text-gray-400 f1-font text-2xl uppercase tracking-widest hover:border-yellow-500 hover:text-yellow-500 transition-all flex flex-col items-center justify-center gap-2 animate-pulse';
-                 revealBtn.innerHTML = `<span>VISUALIZE MEANING</span><span class="text-xs text-gray-500 font-mono">TAP TO UNLOCK</span>`;
-                 revealBtn.onclick = () => { 
-                     renderBtns();
-                 };
-                 container.appendChild(revealBtn);
-             }
+             q.o.forEach(opt => {
+                 const btn = document.createElement('button');
+                 // 日本語が含まれる場合はゴシック体
+                 const isJp = /[あ-んア-ン一-龥]/.test(opt);
+                 const fontClass = isJp ? "jp-font tracking-wider" : "text-sm";
+                 // 文字数でサイズ調整
+                 const textSize = opt.length > 20 ? "text-xs" : (opt.length > 10 ? "text-sm" : "text-lg");
+                 
+                 btn.className = `option-btn w-full h-full flex items-center justify-center p-5 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 active:border-red-500 font-bold shadow-lg ${fontClass} ${textSize} transition-all min-h-[80px]`;
+                 btn.innerText = opt;
+                 btn.onclick = () => this.handleVocabAnswer(opt, q);
+                 container.appendChild(btn);
+             });
          }
 
          handleVocabAnswer(selected, q) {
              const btns = document.querySelectorAll('.option-btn');
              if (btns.length > 0 && btns[0].disabled) return;
              btns.forEach(b => b.disabled = true);
-
-             if (this.isRadioMode) {
-                 const targetDisplay = document.getElementById('target-word');
-                 targetDisplay.innerHTML = "";
-                 targetDisplay.innerText = q.w; 
-                 targetDisplay.className = "jp-font text-6xl font-bold text-white tracking-wide drop-shadow-xl break-words px-2 text-center";
-             }
 
              const feedback = document.getElementById('feedback');
              const timeTaken = (Date.now() - this.lapStartTime) / 1000;
@@ -1518,8 +1184,6 @@
                  if (this.currentStreak > this.maxStreak) {
                      this.maxStreak = this.currentStreak;
                  }
-
-                 if(this.isReverseMode) this.speak(q.w);
                  
                  if (timeTaken < 1.5) {
                      feedback.innerHTML = `<span class="text-[#39ff14] text-xs font-bold animate-pulse">🟣 PURPLE SECTOR (${timeTaken.toFixed(2)}s)</span>`;
@@ -1537,15 +1201,22 @@
                  this.missCount++;
                  this.currentStreak = 0; 
                  
-                 feedback.innerText = `WRONG: ${q.w}`;
+                 // 正解表示（意味は全リスト表示ではなく、出題された正解を表示するが、わかりやすさのため全意味を出してもよい。ここではシンプルに）
+                 // 全意味を表示して復習しやすくする
+                 const displayCorrect = Array.isArray(q.m) ? q.m.join(' / ') : q.m;
+                 
+                 feedback.innerText = `WRONG: ${q.w} = ${displayCorrect}`;
                  feedback.className = "mt-4 text-center h-6 font-bold text-red-500 animate-pulse";
-                 if (!this.missedWordsLog.find(item => item.w === q.w)) this.missedWordsLog.push({ w: q.w, m: q.m });
+                 
+                 if (!this.missedWordsLog.find(item => item.w === q.w)) {
+                     this.missedWordsLog.push({ w: q.w, m: displayCorrect });
+                 }
                  
                  this.questions.push(q);
                  setTimeout(() => { 
                      this.currentIndex++; 
                      this.showVocabQuestion(); 
-                 }, 1500);
+                 }, 2000); // 読む時間を少し確保
              }
          }
 
@@ -1567,13 +1238,13 @@
              document.getElementById('result-screen').classList.remove('hidden');
              
              const totalTime = (Date.now() - this.startTime) / 1000;
-             let totalQs = this.questions.length;
-             if (totalQs === 0) totalQs = 1; 
+             let totalQs = this.questions.length; // ペナルティ込みの総出題数にはしたくない場合調整が必要だが、シンプルに
              
+             // 純粋な問題数ベースでのスコア
              let correctCount = Math.max(0, this.wordsPerRound - this.missCount);
-             // 計算式：初期設定の問題数に対する正解率
              let accuracy = (correctCount / this.wordsPerRound) * 100;
              if(accuracy < 0) accuracy = 0;
+             if(accuracy > 100) accuracy = 100; // 念のため
              
              const accDisplay = document.getElementById('accuracy-display');
              accDisplay.innerText = `${accuracy.toFixed(1)}%`;
@@ -1672,12 +1343,27 @@
              
              this.questions = vocabDue.map(item => {
                  const word = item.word || item.w;
-                 const meaning = item.meaning || item.m;
-                 const targetWord = { w: word, m: meaning };
+                 const meaningArray = Array.isArray(item.meaning) ? item.meaning : [item.meaning || item.m];
+                 // 復習時もランダムに意味を1つ選ぶ
+                 const randomMeaning = meaningArray[Math.floor(Math.random() * meaningArray.length)];
+
+                 const targetWord = { w: word, m: meaningArray };
                  
                  const distractors = this.getDistractors(targetWord, false);
-                 const options = [targetWord.m, ...distractors].sort(() => Math.random() - 0.5);
-                 return { w: targetWord.w, m: targetWord.m, qText: targetWord.w, aText: targetWord.m, o: options, docId: item.id, interval: item.interval || 0, repetitions: item.repetitions || 0, easeFactor: item.easeFactor || 2.5 };
+                 const options = [randomMeaning, ...distractors].sort(() => Math.random() - 0.5);
+                 
+                 return { 
+                     w: word, 
+                     m: meaningArray, 
+                     displayM: randomMeaning,
+                     qText: word, 
+                     aText: randomMeaning, 
+                     o: options, 
+                     docId: item.id, 
+                     interval: item.interval || 0, 
+                     repetitions: item.repetitions || 0, 
+                     easeFactor: item.easeFactor || 2.5 
+                 };
              });
              
              this.questions.sort(() => Math.random() - 0.5);
@@ -1753,9 +1439,12 @@
              
              let merged = dataSrc.map((item, idx) => {
                  const srs = this.allMistakes.find(m => m.word === item.w || m.w === item.w);
+                 // データセンターでは全意味を表示したいのでjoinする
+                 const mStr = Array.isArray(item.m) ? item.m.join(' / ') : (item.meaning ? (Array.isArray(item.meaning) ? item.meaning.join(' / ') : item.meaning) : "");
+                 
                  return {
                      w: item.w || item.word,
-                     m: item.m || item.meaning,
+                     m: mStr,
                      id: idx,
                      srs: srs || null
                  };
@@ -1809,7 +1498,6 @@
                          </div>
                      </div>
                      <div class="flex items-center gap-2 shrink-0">
-                         <button class="text-gray-500 hover:text-cyan-400 p-2" onclick="quiz.speak(decodeURIComponent('${safeW}').replace(/'/g, '\\''))">🔊</button>
                          <button class="${isBookmarked ? 'text-red-500' : 'text-gray-600 hover:text-gray-400'} p-2" onclick="window.toggleBookmark('${safeW}', '${safeM}')">
                              ${isBookmarked ? '🚩' : '🏳️'}
                          </button>
@@ -2033,9 +1721,10 @@
         nextDate.setDate(now.getDate() + nextInterval);
         const nextReviewSeconds = Math.floor(nextDate.getTime() / 1000);
 
+        // Firestore保存（全意味配列を保存）
         setDoc(targetRef, { 
             word: questionObj.w, 
-            meaning: questionObj.m, 
+            meaning: questionObj.m, // 配列
             nextReview: Timestamp.fromDate(nextDate), 
             interval: nextInterval, 
             repetitions: nextRepetitions, 
@@ -2120,7 +1809,7 @@
       window.toggleBookmark = async (safeWord, safeMeaning) => {
           if (!window.currentUser) { alert("Sign in required."); return; }
           const word = decodeURIComponent(safeWord);
-          const meaning = decodeURIComponent(safeMeaning);
+          const meaning = decodeURIComponent(safeMeaning); // ここで来るのは全意味文字列
 
           let currentItem = window.quiz.allMistakes.find(m => m.word === word || m.w === word);
           const isCurrentlyBookmarked = currentItem && currentItem.bookmarked === true;
@@ -2129,8 +1818,13 @@
           if (currentItem) {
               currentItem.bookmarked = newValue;
           } else {
+              // 新規追加
+              // meaning文字列を配列に戻して保持してもよいが、表示用なので文字列のままでも運用可
+              // ただしSRSロジックでは配列を期待しているので注意
+              // ここでは簡易的に文字列を配列化して保持
+              const mList = meaning.split(' / ');
               window.quiz.allMistakes.push({ 
-                   word: word, meaning: meaning, bookmarked: newValue, 
+                   word: word, meaning: mList, bookmarked: newValue, 
                    interval: 0, repetitions: 0, easeFactor: 2.5,
                    nextReviewSeconds: Date.now() / 1000 
               });
@@ -2150,7 +1844,7 @@
           try {
               await setDoc(targetRef, {
                   word: word,
-                  meaning: meaning,
+                  meaning: currentItem.meaning || meaning.split(' / '), // 配列で保存
                   bookmarked: newValue,
                   interval: currentItem ? (currentItem.interval || 0) : 0,
                   repetitions: currentItem ? (currentItem.repetitions || 0) : 0,
