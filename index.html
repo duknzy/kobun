@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kobun GP">
     <meta name="theme-color" content="#0b0e14">
     <title>Kobun GP</title>
     <link rel="manifest" href="manifest.json">
@@ -17,24 +19,53 @@
 
         /* 【修正】html と body の設定を以下のように変更 */
     
+    /* 【修正】html と body の設定を以下のように変更 */
+    
     html {
         /* アプリ全体の裏地を暗くして、白い隙間が出ないようにする */
         background-color: #0b0e14; 
         margin: 0;
         padding: 0;
         height: 100%;
+        /* ↓ 追加: スクロールバウンスを防ぐ固定配置 */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
     }
 
     body {
         height: 100%; 
         width: 100%; 
         overflow: hidden; 
-        background-color: transparent; /* ここは透明のまま（動画を見せるため） */
+        background-color: transparent; 
         margin: 0; 
         padding: 0;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        -webkit-user-select: none; user-select: none;
+        -webkit-user-select: none; 
+        user-select: none;
         touch-action: manipulation;
+        /* ↓ 追加: 画面全体を固定し、Safe Area（ノッチ等）を考慮 */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        -webkit-touch-callout: none;
+        padding-top: max(0px, env(safe-area-inset-top));
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+
+    /* ↓ 新規追加: アプリ本体のコンテナも固定配置に */
+    #app {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding-top: max(0.5rem, env(safe-area-inset-top));
     }
 
         /* 背景動画の設定 */
