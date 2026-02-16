@@ -10,18 +10,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* フォントを明朝体に変更して古文の雰囲気を少しプラス（F1感とのミックス） */
-        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Shippori+Mincho:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
         
         :root { --f1-red: #e10600; --rb-navy: #0b0e14; }
 
-        html, body {
-            height: 100%; width: 100%; overflow: hidden; 
-            background-color: #0b0e14; color: #e2e8f0;
-            font-family: 'Shippori Mincho', 'Chakra Petch', sans-serif;
-            -webkit-user-select: none; user-select: none;
-            touch-action: manipulation;
-        }
+    html, body {
+        height: 100%; width: 100%; overflow: hidden; 
+        background-color: #0b0e14; color: #e2e8f0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif; /* 標準ゴシックに戻す */
+        -webkit-user-select: none; user-select: none;
+        touch-action: manipulation;
+    }
 
         /* 背景動画の設定 */
         #bg-video {
@@ -31,8 +30,9 @@
             object-fit: cover; filter: brightness(0.5);
         }
 
-        .f1-font { font-family: 'Chakra Petch', sans-serif; } /* 数字などはF1フォント維持 */
-        .jp-font { font-family: 'Shippori Mincho', serif; font-weight: bold; }
+       .f1-font { font-family: 'Chakra Petch', sans-serif; }
+        /* .jp-font クラスは削除、もしくは空にしておく */
+        .jp-font { }
 
         .race-card {
             background: rgba(11, 14, 20, 0.85);
@@ -132,16 +132,16 @@
                         <div>
                             <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Laps (Questions)</p>
                             <div class="grid grid-cols-3 gap-3">
-                                <button onclick="quiz.setTireStrategy(10, 'soft')" id="tire-soft" class="tire-btn tire-soft bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
-                                    <span class="block text-xs mb-1">🔴 Sprint</span>(10)
-                                </button>
-                                <button onclick="quiz.setTireStrategy(20, 'medium')" id="tire-medium" class="tire-btn tire-medium active bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
-                                    <span class="block text-xs mb-1">🟡 Race</span>(20)
-                                </button>
-                                <button onclick="quiz.setTireStrategy(50, 'hard')" id="tire-hard" class="tire-btn tire-hard bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
-                                    <span class="block text-xs mb-1">⚪ Endurance</span>(50)
-                                </button>
-                            </div>
+    <button onclick="quiz.setTireStrategy(10, 'soft')" id="tire-soft" class="tire-btn tire-soft bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
+        <span class="block text-xs mb-1">🔴 Soft</span>(10)
+    </button>
+    <button onclick="quiz.setTireStrategy(20, 'medium')" id="tire-medium" class="tire-btn tire-medium active bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
+        <span class="block text-xs mb-1">🟡 Medium</span>(20)
+    </button>
+    <button onclick="quiz.setTireStrategy(50, 'hard')" id="tire-hard" class="tire-btn tire-hard bg-black/40 text-gray-400 py-3 rounded-lg border border-gray-700 f1-font text-xs font-bold uppercase tracking-wider hover:bg-gray-800">
+        <span class="block text-xs mb-1">⚪ Hard</span>(50)
+    </button>
+</div>
                         </div>
 
                         <div class="grid grid-cols-1 gap-4">
@@ -416,15 +416,16 @@
          }
 
          showQuestion() {
-             const q = this.questions[this.currentIndex];
-             document.getElementById('question-number').innerText = `LAP ${this.currentIndex + 1} / ${this.questions.length}`;
-             
-             const targetDisplay = document.getElementById('target-word');
-             targetDisplay.innerText = q.qText;
+             showQuestion() {
+     const q = this.questions[this.currentIndex];
+     document.getElementById('question-number').innerText = `LAP ${this.currentIndex + 1} / ${this.questions.length}`;
+     
+     const targetDisplay = document.getElementById('target-word');
+     targetDisplay.innerText = q.qText;
              
              // フォント切り替え（古文単語なら明朝体、現代語ならゴシック寄り）
-             if (!this.isReverseMode) targetDisplay.classList.add('jp-font');
-             else targetDisplay.classList.remove('jp-font');
+             //if (!this.isReverseMode) targetDisplay.classList.add('jp-font');
+             //else targetDisplay.classList.remove('jp-font');
 
              document.getElementById('progress-fill').style.width = `${(this.currentIndex / this.questions.length) * 100}%`;
              document.getElementById('feedback').innerText = '';
