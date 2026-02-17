@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="RB Hybrid Kobun">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#0b0e14">
     
     <title>RB Hybrid Kobun System</title>
@@ -69,8 +72,25 @@
         .f1-font { font-family: 'Chakra Petch', sans-serif; }
         
         /* 日本語用（ゴシック） */
-        .jp-font { font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; font-weight: 700; }
+       /* 日本語用（F1仕様 明朝） */
+.jp-font { 
+    /* しっぽり明朝 B1を指定 */
+    font-family: 'Shippori Mincho B1', serif; 
+    font-weight: 800; /* 極太でインパクトを出す */
+    
+    /* 文字のカーニング（詰め）を自動調整してプロっぽくする */
+    font-feature-settings: "palt";
+    
+    /* 視認性を高めるための微妙な光彩（グロー効果） */
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1); 
+}
 
+/* ついでにターゲット単語（デカい文字）はさらに強調 */
+#target-word {
+    font-family: 'Shippori Mincho B1', serif;
+    /* 墨文字のような重厚感と、F1のようなスピード感を両立 */
+    text-shadow: 2px 2px 0px #000, 0 0 30px rgba(225, 6, 0, 0.4); 
+}
         #app {
             height: 100%;
             overflow-y: auto;
