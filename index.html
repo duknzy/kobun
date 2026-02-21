@@ -1392,15 +1392,17 @@
              const container = document.getElementById('options-container');
              container.innerHTML = '';
              
-             q.o.forEach(opt => {
+           q.o.forEach(opt => {
                  const btn = document.createElement('button');
-                 // 日本語が含まれる場合はゴシック体
-                 const isJp = /[あ-んア-ン一-龥]/.test(opt);
-                 const fontClass = isJp ? "jp-font tracking-wider" : "text-sm";
-                 // 文字数でサイズ調整
-                 const textSize = opt.length > 20 ? "text-xs" : (opt.length > 10 ? "text-sm" : "text-lg");
                  
-                 btn.className = `option-btn w-full h-full flex items-center justify-center p-5 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 active:border-red-500 font-bold shadow-lg ${fontClass} ${textSize} transition-all min-h-[80px]`;
+                 // 極太フォント(jp-font)をやめ、読みやすい標準ゴシック(font-sans)に変更
+                 const isJp = /[あ-んア-ン一-龥]/.test(opt);
+                 const fontClass = isJp ? "font-sans tracking-wide" : "font-sans text-sm";
+                 
+                 // 文字数でサイズ調整（潰れないように少し大きめを確保）
+                 const textSize = opt.length > 25 ? "text-sm" : (opt.length > 10 ? "text-base" : "text-lg");
+                 
+                 btn.className = `option-btn w-full h-full flex items-center justify-center p-4 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 active:border-red-500 font-bold shadow-lg ${fontClass} ${textSize} transition-all min-h-[80px] leading-snug`;
                  btn.innerText = opt;
                  btn.onclick = () => this.handleVocabAnswer(opt, q);
                  container.appendChild(btn);
