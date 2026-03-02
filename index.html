@@ -1077,34 +1077,29 @@
             this.initSearch(); 
         }
 
-        parseData() {
+       parseData() {
             if(!rawData.trim()) { this.masterList = []; return; }
-            const lines = rawData.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const lines = rawData.split('\n').map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('[source'));
             this.masterList = [];
             lines.forEach(line => {
-                let goro = "";
-                let mainPart = line;
-                // 語呂合わせ（//）の分離
-                if(line.includes('//')) {
-                    const parts = line.split('//');
-                    mainPart = parts[0].trim();
-                    goro = parts[1].trim();
-                }
-
                 let sep = -1;
-                if (mainPart.indexOf(':') !== -1) sep = mainPart.indexOf(':');
-                else if (mainPart.indexOf('：') !== -1) sep = mainPart.indexOf('：');
-                
+                if (line.indexOf('\t') !== -1) sep = line.indexOf('\t');
+                else if (line.indexOf(':') !== -1) sep = line.indexOf(':');
+                else if (line.indexOf('：') !== -1) sep = line.indexOf('：');
                 if (sep !== -1) {
-                    const w = mainPart.substring(0, sep).trim();
-                    const mRaw = mainPart.substring(sep + 1).trim();
-                    const mList = mRaw.split('|').map(s => s.trim());
-                    // g: goro としてデータを保持
-                    this.masterList.push({ w: w, m: mList, g: goro });
+                    const word = line.substring(0, sep).trim();
+                    const rawMeaning = line.substring(sep + 1).trim();
+                    
+                    // --- 1語1義の最強セットアップ ---
+                    // 「、」「,」「；」「;」などで区切られている場合、最初の意味だけを最速ラインとして切り出す
+                    const primaryMeaning = rawMeaning.split(/[、,；;]/)[0].trim();
+                    
+                    // m: には最初の意味だけをセット。フルデータは full_m にバックアップしておく
+                    this.masterList.push({ w: word, m: primaryMeaning, full_m: rawMeaning });
                 }
             });
         }
-
+        
         generateRounds() {
             const wordCopy = [...this.masterList]; 
             this.vocabRounds = [];
