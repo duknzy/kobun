@@ -1077,7 +1077,7 @@
             this.initSearch(); 
         }
 
-       parseData() {
+     parseData() {
             if(!rawData.trim()) { this.masterList = []; return; }
             const lines = rawData.split('\n').map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('[source'));
             this.masterList = [];
@@ -1090,16 +1090,15 @@
                     const word = line.substring(0, sep).trim();
                     const rawMeaning = line.substring(sep + 1).trim();
                     
-                    // --- 1語1義の最強セットアップ ---
-                    // 「、」「,」「；」「;」などで区切られている場合、最初の意味だけを最速ラインとして切り出す
+                    // 1語1義の最速ライン
                     const primaryMeaning = rawMeaning.split(/[、,；;]/)[0].trim();
                     
-                    // m: には最初の意味だけをセット。フルデータは full_m にバックアップしておく
-                    this.masterList.push({ w: word, m: primaryMeaning, full_m: rawMeaning });
+                    // 修正: m を配列の形 [primaryMeaning] に戻して互換性を保つ
+                    this.masterList.push({ w: word, m: [primaryMeaning], full_m: rawMeaning });
                 }
             });
         }
-        
+
         generateRounds() {
             const wordCopy = [...this.masterList]; 
             this.vocabRounds = [];
@@ -1277,7 +1276,7 @@
             this.startVocabMode();
         }
 
-        startVocabMode() {
+       startVocabMode() {
             if(this.vocabRounds.length === 0) { alert("Data not loaded"); this.returnToGrid(); return; }
             this.isPitStopMode = false;
             
@@ -1296,9 +1295,8 @@
             document.getElementById('question-label').innerText = this.isReverseMode ? "TRANSLATE" : "MEANING";
 
             this.questions = selectedRound.words.map(target => {
-                // 多義語の中から1つだけランダムに選ぶ
-                const randomMeaning = target.m[Math.floor(Math.random() * target.m.length)];
-                const fullMeanings = target.m; // 保存用に全意味も持っておく
+                const randomMeaning = target.m[0]; // 1語1義データを取得
+                const fullMeanings = target.full_m || target.m.join(' / '); // 記録用に全意味を保持
 
                 const qText = this.isReverseMode ? randomMeaning : target.w;
                 const aText = this.isReverseMode ? target.w : randomMeaning;
@@ -1310,8 +1308,8 @@
 
                 return { 
                     w: target.w, 
-                    m: fullMeanings, // 記録用（配列）
-                    displayM: randomMeaning, // 表示用（単一）
+                    m: fullMeanings, 
+                    displayM: randomMeaning, 
                     qText: qText, 
                     aText: aText, 
                     o: options,
@@ -1679,11 +1677,13 @@
             this.showFPCard();
         }
         
-        showFPCard() {
+       showFPCard() {
             const q = this.fpQuestions[this.fpIndex];
             document.getElementById('fp-counter').innerText = `LAP ${this.fpIndex + 1} / ${this.fpQuestions.length}`;
             document.getElementById('fp-word').innerText = q.w;
-            document.getElementById('fp-meaning').innerText = q.m.join(' / ');
+            
+            // 修正: FPモードでは全意味（full_m）を表示して学習効率を上げる
+            document.getElementById('fp-meaning').innerText = q.full_m || (Array.isArray(q.m) ? q.m.join(' / ') : q.m);
             document.getElementById('fp-goro').innerText = q.g ? q.g : "※NO DATA (語呂合わせ未登録)";
             
             // 常に表面（単語）からスタート
@@ -1734,10 +1734,10 @@
 
              let dataSrc = this.masterList.length > 0 ? this.masterList : (this.allMistakes || []);
              
-             let merged = dataSrc.map((item, idx) => {
+          let merged = dataSrc.map((item, idx) => {
                  const srs = this.allMistakes.find(m => m.word === item.w || m.w === item.w);
-                 // データセンターでは全意味を表示したいのでjoinする
-                 const mStr = Array.isArray(item.m) ? item.m.join(' / ') : (item.meaning ? (Array.isArray(item.meaning) ? item.meaning.join(' / ') : item.meaning) : "");
+                 // 修正: フルデータが存在する場合はそれを優先して表示
+                 const mStr = item.full_m || (Array.isArray(item.m) ? item.m.join(' / ') : (item.meaning ? (Array.isArray(item.meaning) ? item.meaning.join(' / ') : item.meaning) : ""));
                  
                  return {
                      w: item.w || item.word,
