@@ -1077,7 +1077,7 @@
             this.initSearch(); 
         }
 
-     parseData() {
+    parseData() {
             if(!rawData.trim()) { this.masterList = []; return; }
             const lines = rawData.split('\n').map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('[source'));
             this.masterList = [];
@@ -1088,13 +1088,28 @@
                 else if (line.indexOf('：') !== -1) sep = line.indexOf('：');
                 if (sep !== -1) {
                     const word = line.substring(0, sep).trim();
-                    const rawMeaning = line.substring(sep + 1).trim();
+                    const rest = line.substring(sep + 1).trim();
                     
-                    // 1語1義の最速ライン
-                    const primaryMeaning = rawMeaning.split(/[、,；;]/)[0].trim();
+                    let meaningsPart = rest;
+                    let goro = "";
+
+                    // テレメトリー（語呂合わせ）のデータを「//」で正確に分離する
+                    const goroIndex = rest.indexOf('//');
+                    if (goroIndex !== -1) {
+                        meaningsPart = rest.substring(0, goroIndex).trim();
+                        goro = rest.substring(goroIndex + 2).trim();
+                    }
                     
-                    // 修正: m を配列の形 [primaryMeaning] に戻して互換性を保つ
-                    this.masterList.push({ w: word, m: [primaryMeaning], full_m: rawMeaning });
+                    // 1語1義の最速ライン（「|」や「、」などで区切られた最初の意味だけを抽出）
+                    const primaryMeaning = meaningsPart.split(/[|｜、,；;]/)[0].trim();
+                    
+                    // それぞれのデータを正しいチャンネルに割り当てる
+                    this.masterList.push({ 
+                        w: word, 
+                        m: [primaryMeaning], 
+                        full_m: meaningsPart, // 語呂合わせを除外したピュアな意味データ
+                        g: goro // 独立した語呂合わせデータ
+                    });
                 }
             });
         }
