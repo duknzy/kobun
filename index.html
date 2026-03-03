@@ -50,6 +50,19 @@
             padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
 
+        #bg-video {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+
         .carbon-bg {
             background-image: none;
             background-color: transparent;
@@ -159,6 +172,9 @@
 </head>
 <body class="carbon-bg text-sm md:text-base">
 
+    <video autoplay muted loop playsinline poster="./F1.jpg" id="bg-video">
+        <source src="./.mp4" type="video/mp4">
+    </video>
 
     <div id="app" class="w-full max-w-6xl mx-auto flex flex-col">
         
