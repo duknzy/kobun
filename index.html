@@ -2079,16 +2079,43 @@ window.handleSRSUpdate = async (questionObj, isCorrect) => {
     }
 };
 
-// レース結果をクラウドに保存
 window.saveRaceResult = async (data) => {
     if (!window.currentUser) return;
     try {
-        await addDoc(collection(db, "users", window.currentUser.uid, "raceResults"), {
-            ...data,
-            timestamp: Timestamp.now()
+        const now = new Date();
+        
+        // 日本時間(JST)基準でフォーマットを作成
+        const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+        const Y = jstDate.getUTCFullYear();
+        const M = String(jstDate.getUTCMonth() + 1).padStart(2, '0');
+        const D = String(jstDate.getUTCDate()).padStart(2, '0');
+        const h = String(jstDate.getUTCHours()).padStart(2, '0');
+        const m = String(jstDate.getUTCMinutes()).padStart(2, '0');
+        const s = String(jstDate.getUTCSeconds()).padStart(2, '0');
+        const ms = String(jstDate.getUTCMilliseconds()).padStart(4, '0');
+
+        // 画像通りのドキュメントID形式: 2026-03-17_094636-0996
+        const docId = `${Y}-${M}-${D}_${h}${m}${s}-${ms}`;
+        
+        // 保存用の日付文字列: 2026/3/17 9:46:36
+        const dateStr = `${Y}/${parseInt(M)}/${parseInt(D)} ${parseInt(h)}:${m}:${s}`;
+
+        // ルート直下の "leaderboard" コレクションへ書き込み
+        await setDoc(doc(db, "leaderboard", docId), {
+            accuracy: data.accuracy,
+            date: dateStr,
+            driver: window.currentUser.displayName || "ひろ", // お前の名前だ
+            round: data.round,
+            score: data.score,
+            streak: data.streak,
+            time: data.time,
+            timestamp: Timestamp.now(),
+            uid: window.currentUser.uid
         });
+
+        console.log("Leaderboard Updated: P1 Record Synced.");
     } catch (e) {
-        console.error("Result Sync Error:", e);
+        console.error("Leaderboard Sync Error:", e);
     }
 };
 
