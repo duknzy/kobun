@@ -1944,9 +1944,10 @@
     </script>
     
    <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { 
+    getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, // getDocを追加
+    Timestamp, increment, initializeFirestore, persistentLocalCache,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
     getFirestore, collection, addDoc, getDocs, doc, setDoc, 
     Timestamp, increment, initializeFirestore, persistentLocalCache, // incrementを追加
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
@@ -2079,12 +2080,24 @@ window.handleSRSUpdate = async (questionObj, isCorrect) => {
     }
 };
 
+// レース結果とデイリーラップをリーダーボードに同期
 window.saveRaceResult = async (data) => {
     if (!window.currentUser) return;
     try {
+        const uid = window.currentUser.uid;
+        const today = new Date().toISOString().split('T')[0];
+        const lapRef = doc(db, "users", uid, "stats", today);
+
+        // 1. 今日の現在の走行数を取得
+        const lapSnap = await getDoc(lapRef);
+        let currentLaps = 0;
+        if (lapSnap.exists()) {
+            currentLaps = lapSnap.data().laps || 0;
+        }
+        const newTotalLaps = currentLaps + 1; // 今回の分を加算
+
+        // 2. リーダーボード用のIDと日付生成
         const now = new Date();
-        
-        // 日本時間(JST)基準でフォーマットを作成
         const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
         const Y = jstDate.getUTCFullYear();
         const M = String(jstDate.getUTCMonth() + 1).padStart(2, '0');
@@ -2094,26 +2107,32 @@ window.saveRaceResult = async (data) => {
         const s = String(jstDate.getUTCSeconds()).padStart(2, '0');
         const ms = String(jstDate.getUTCMilliseconds()).padStart(4, '0');
 
-        // 画像通りのドキュメントID形式: 2026-03-17_094636-0996
         const docId = `${Y}-${M}-${D}_${h}${m}${s}-${ms}`;
-        
-        // 保存用の日付文字列: 2026/3/17 9:46:36
         const dateStr = `${Y}/${parseInt(M)}/${parseInt(D)} ${parseInt(h)}:${m}:${s}`;
 
-        // ルート直下の "leaderboard" コレクションへ書き込み
+        // 3. リーダーボードへ保存 (dailyLapsを追加)
         await setDoc(doc(db, "leaderboard", docId), {
             accuracy: data.accuracy,
+            dailyLaps: newTotalLaps, // ★ここが追加したフィールドだ
             date: dateStr,
-            driver: window.currentUser.displayName || "ひろ", // お前の名前だ
+            driver: window.currentUser.displayName || "ひろ",
             round: data.round,
             score: data.score,
             streak: data.streak,
             time: data.time,
             timestamp: Timestamp.now(),
-            uid: window.currentUser.uid
+            uid: uid
         });
 
-        console.log("Leaderboard Updated: P1 Record Synced.");
+        // 4. ついでに個人のstatsも更新して整合性をとる
+        await setDoc(lapRef, { laps: newTotalLaps }, { merge: true });
+
+        console.log(`Leaderboard Updated. Total Laps Today: ${newTotalLaps}`);
+        
+        // 画面上の表示も即座に更新する
+        const display = document.getElementById('daily-laps-display');
+        if (display) display.innerText = newTotalLaps;
+
     } catch (e) {
         console.error("Leaderboard Sync Error:", e);
     }
