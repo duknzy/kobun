@@ -1944,12 +1944,11 @@
     </script>
     
    <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { 
-    getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, // getDocを追加
-    Timestamp, increment, initializeFirestore, persistentLocalCache,
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-    getFirestore, collection, addDoc, getDocs, doc, setDoc, 
-    Timestamp, increment, initializeFirestore, persistentLocalCache, // incrementを追加
+    getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc,
+    Timestamp, increment, initializeFirestore, persistentLocalCache 
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // Firebase Config
@@ -2006,81 +2005,61 @@ if (auth) {
     });
 }
 
-// クラウドからデータを取得し、ローカルを更新する
+// データ取得
 window.fetchSRSItems = async () => {
     if (!window.currentUser) return;
     const uid = window.currentUser.uid;
     const CACHE_KEY = `kobun_srs_data_${uid}`;
-    
     try {
         const q = collection(db, "users", uid, "srsData");
         const querySnapshot = await getDocs(q);
         const cloudData = [];
-        querySnapshot.forEach((doc) => {
-            cloudData.push({ id: doc.id, ...doc.data() });
-        });
-
+        querySnapshot.forEach((doc) => { cloudData.push({ id: doc.id, ...doc.data() }); });
         localStorage.setItem(CACHE_KEY, JSON.stringify(cloudData));
-
         const nowTs = Date.now() / 1000;
         const dueItems = cloudData.filter(item => item.nextReviewSeconds <= nowTs);
-
         if(window.quiz) {
             window.quiz.allMistakes = cloudData;
             window.quiz.dueMistakes = dueItems;
             window.quiz.updatePitStopButton(dueItems.length);
         }
-    } catch (e) {
-        console.error("Data Fetch Error:", e);
-    }
+        // 今日の周回数表示を更新
+        const today = new Date().toISOString().split('T')[0];
+        const lapSnap = await getDoc(doc(db, "users", uid, "stats", today));
+        if (lapSnap.exists()) {
+            document.getElementById('daily-laps-display').innerText = lapSnap.data().laps || 0;
+        }
+    } catch (e) { console.error("Fetch Error:", e); }
 };
 
-// 学習進捗（SRS）をクラウドに送信する
-window.handleSRSUpdate = async (questionObj, isCorrect) => {
+// SRS更新 (IDを単語そのままにして可読性アップ)
+window.handleSRSUpdate = async (qObj, isCorrect) => {
     if (!window.currentUser) return;
     const uid = window.currentUser.uid;
-    const safeWordId = questionObj.docId || btoa(encodeURIComponent(questionObj.w)).replace(/\//g, '_').replace(/\+/g, '-');
+    const docId = qObj.w; // 修正：単語をそのままIDにする
     
-    const currentParams = { 
-        interval: questionObj.interval || 0, 
-        repetitions: questionObj.repetitions || 0, 
-        easeFactor: questionObj.easeFactor || 2.5 
-    };
-    
-    let nextInterval, nextRepetitions, nextEaseFactor;
-    if (!isCorrect) {
-        nextRepetitions = 0; nextInterval = 1;
-        nextEaseFactor = Math.max(1.3, currentParams.easeFactor - 0.2);
-    } else {
-        nextRepetitions = currentParams.repetitions + 1;
-        const timeTaken = questionObj.timeTaken || 3.0;
-        let easeBonus = timeTaken < 1.2 ? 0.3 : (timeTaken > 5.0 ? -0.15 : 0.1);
-        nextEaseFactor = Math.min(3.0, Math.max(1.3, currentParams.easeFactor + easeBonus));
-        nextInterval = nextRepetitions === 1 ? 1 : (nextRepetitions === 2 ? 6 : Math.round(currentParams.interval * nextEaseFactor));
+    const params = { interval: qObj.interval || 0, repetitions: qObj.repetitions || 0, easeFactor: qObj.easeFactor || 2.5 };
+    let nInt, nRep, nEF;
+    if (!isCorrect) { nRep = 0; nInt = 1; nEF = Math.max(1.3, params.easeFactor - 0.2); }
+    else {
+        nRep = params.repetitions + 1;
+        const time = qObj.timeTaken || 3.0;
+        let bonus = time < 1.2 ? 0.3 : (time > 5.0 ? -0.15 : 0.1);
+        nEF = Math.min(3.0, Math.max(1.3, params.easeFactor + bonus));
+        nInt = nRep === 1 ? 1 : (nRep === 2 ? 6 : Math.round(params.interval * nEF));
     }
 
-    const nextReviewSeconds = Math.floor((Date.now() / 1000) + (nextInterval * 86400));
-    
-    const newItemState = {
-        id: safeWordId,
-        word: questionObj.w,
-        meaning: questionObj.m,
-        nextReviewSeconds: nextReviewSeconds,
-        interval: nextInterval,
-        repetitions: nextRepetitions,
-        easeFactor: nextEaseFactor,
-        updatedAt: Timestamp.now()
-    };
-
+    const nextReview = Math.floor((Date.now() / 1000) + (nInt * 86400));
     try {
-        await setDoc(doc(db, "users", uid, "srsData", safeWordId), newItemState, { merge: true });
+        await setDoc(doc(db, "users", uid, "srsData", docId), {
+            word: qObj.w, meaning: qObj.m, nextReviewSeconds: nextReview,
+            interval: nInt, repetitions: nRep, easeFactor: nEF, updatedAt: Timestamp.now()
+        }, { merge: true });
         await window.fetchSRSItems();
-    } catch(e) {
-        console.error("Cloud Sync Failed:", e);
-    }
+    } catch(e) { console.error("Sync Failed:", e); }
 };
 
-// レース結果とデイリーラップをリーダーボードに同期
+// レース結果保存 (Leaderboard & Daily Laps 同期)
 window.saveRaceResult = async (data) => {
     if (!window.currentUser) return;
     try {
@@ -2088,32 +2067,24 @@ window.saveRaceResult = async (data) => {
         const today = new Date().toISOString().split('T')[0];
         const lapRef = doc(db, "users", uid, "stats", today);
 
-        // 1. 今日の現在の走行数を取得
+        // 1. 周回数を取得してインクリメント
         const lapSnap = await getDoc(lapRef);
-        let currentLaps = 0;
-        if (lapSnap.exists()) {
-            currentLaps = lapSnap.data().laps || 0;
-        }
-        const newTotalLaps = currentLaps + 1; // 今回の分を加算
+        const currentLaps = lapSnap.exists() ? (lapSnap.data().laps || 0) : 0;
+        const newTotalLaps = currentLaps + 1;
 
-        // 2. リーダーボード用のIDと日付生成
+        // 2. IDと日付フォーマット (画像準拠)
         const now = new Date();
-        const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-        const Y = jstDate.getUTCFullYear();
-        const M = String(jstDate.getUTCMonth() + 1).padStart(2, '0');
-        const D = String(jstDate.getUTCDate()).padStart(2, '0');
-        const h = String(jstDate.getUTCHours()).padStart(2, '0');
-        const m = String(jstDate.getUTCMinutes()).padStart(2, '0');
-        const s = String(jstDate.getUTCSeconds()).padStart(2, '0');
-        const ms = String(jstDate.getUTCMilliseconds()).padStart(4, '0');
-
+        const jst = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+        const Y = jst.getUTCFullYear(), M = String(jst.getUTCMonth()+1).padStart(2,'0'), D = String(jst.getUTCDate()).padStart(2,'0');
+        const h = String(jst.getUTCHours()).padStart(2,'0'), m = String(jst.getUTCMinutes()).padStart(2,'0'), s = String(jst.getUTCSeconds()).padStart(2,'0'), ms = String(jst.getUTCMilliseconds()).padStart(4,'0');
+        
         const docId = `${Y}-${M}-${D}_${h}${m}${s}-${ms}`;
         const dateStr = `${Y}/${parseInt(M)}/${parseInt(D)} ${parseInt(h)}:${m}:${s}`;
 
-        // 3. リーダーボードへ保存 (dailyLapsを追加)
+        // 3. リーダーボード送信 (dailyLaps追加)
         await setDoc(doc(db, "leaderboard", docId), {
             accuracy: data.accuracy,
-            dailyLaps: newTotalLaps, // ★ここが追加したフィールドだ
+            dailyLaps: newTotalLaps,
             date: dateStr,
             driver: window.currentUser.displayName || "ひろ",
             round: data.round,
@@ -2124,57 +2095,32 @@ window.saveRaceResult = async (data) => {
             uid: uid
         });
 
-        // 4. ついでに個人のstatsも更新して整合性をとる
+        // 4. 個人統計更新
         await setDoc(lapRef, { laps: newTotalLaps }, { merge: true });
+        document.getElementById('daily-laps-display').innerText = newTotalLaps;
 
-        console.log(`Leaderboard Updated. Total Laps Today: ${newTotalLaps}`);
-        
-        // 画面上の表示も即座に更新する
-        const display = document.getElementById('daily-laps-display');
-        if (display) display.innerText = newTotalLaps;
-
-    } catch (e) {
-        console.error("Leaderboard Sync Error:", e);
-    }
+    } catch (e) { console.error("Leaderboard Error:", e); }
 };
 
-// フラグ（ブックマーク）を同期
-window.toggleBookmark = async (safeWord, safeMeaning) => {
+// ブックマーク同期 (IDを単語にする)
+window.toggleBookmark = async (safeW, safeM) => {
     if (!window.currentUser) return;
-    const uid = window.currentUser.uid;
-    const word = decodeURIComponent(safeWord);
-    const meaning = decodeURIComponent(safeMeaning);
-    const docId = btoa(encodeURIComponent(word)).replace(/\//g, '_').replace(/\+/g, '-');
+    const uid = window.currentUser.uid, word = decodeURIComponent(safeW), meaning = decodeURIComponent(safeM);
+    const docId = word; 
 
-    const currentItem = window.quiz.allMistakes.find(m => m.word === word);
-    const isCurrentlyBookmarked = currentItem && currentItem.bookmarked === true;
-    const newValue = !isCurrentlyBookmarked;
+    const current = window.quiz.allMistakes.find(m => (m.word || m.w) === word);
+    const newValue = !(current && current.bookmarked === true);
 
     try {
         await setDoc(doc(db, "users", uid, "srsData", docId), {
-            word: word,
-            meaning: meaning,
-            bookmarked: newValue,
-            updatedAt: Timestamp.now()
+            word: word, meaning: meaning, bookmarked: newValue, updatedAt: Timestamp.now()
         }, { merge: true });
-        
         await window.fetchSRSItems();
-    } catch(e) {
-        console.error("Bookmark Sync Error:", e);
-    }
+    } catch(e) { console.error("Bookmark Error:", e); }
 };
 
-// デイリーラップのカウント
-window.incrementDailyLaps = async () => {
-    if (!window.currentUser) return;
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const lapRef = doc(db, "users", window.currentUser.uid, "stats", today);
-        await setDoc(lapRef, { laps: increment(1) }, { merge: true }); // ここでincrementが必須
-    } catch (e) {
-        console.error("Stats Update Error:", e);
-    }
-};
+// 不要な関数は空にする (saveRaceResultに統合したため)
+window.incrementDailyLaps = async () => {};
 </script>
 </body>
 </html>
