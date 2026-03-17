@@ -1943,255 +1943,192 @@
     window.quiz = new HybridQuiz();
     </script>
     
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-      import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-      import { 
-          getFirestore, collection, addDoc, query, where, getDocs, doc, setDoc, updateDoc, 
-          Timestamp, orderBy, limit, runTransaction, onSnapshot, getDoc, increment,
-          initializeFirestore, persistentLocalCache, 
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+   <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import { 
+    getFirestore, collection, addDoc, getDocs, doc, setDoc, 
+    Timestamp, increment, initializeFirestore, persistentLocalCache, // incrementを追加
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-      // ユーザーの指示によりFirebase Configを空に設定
-      const firebaseConfig = {
-  apiKey: "AIzaSyC_30asSoRz9LAyYLuzYqxGhHJNWbuLvKE",
-  authDomain: "kobun-b0fb5.firebaseapp.com",
-  projectId: "kobun-b0fb5",
-  storageBucket: "kobun-b0fb5.firebasestorage.app",
-  messagingSenderId: "892077460039",
-  appId: "1:892077460039:web:d2fb94787344b49087ff62",
-  measurementId: "G-1RJJ1LPXS9"
+// Firebase Config
+const firebaseConfig = {
+    apiKey: "AIzaSyC_30asSoRz9LAyYLuzYqxGhHJNWbuLvKE",
+    authDomain: "kobun-b0fb5.firebaseapp.com",
+    projectId: "kobun-b0fb5",
+    storageBucket: "kobun-b0fb5.firebasestorage.app",
+    messagingSenderId: "892077460039",
+    appId: "1:892077460039:web:d2fb94787344b49087ff62",
+    measurementId: "G-1RJJ1LPXS9"
 };
 
-      let app, auth, db;
-      try {
-          app = initializeApp(firebaseConfig);
-          auth = getAuth(app);
-          db = initializeFirestore(app, {
-              localCache: persistentLocalCache({ tabManager: undefined })
-          });
-      } catch (e) {
-          console.warn("Firebase Setup Skipped (Config Empty). Local mode only.");
-      }
+let app, auth, db;
+try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: undefined })
+    });
+} catch (e) {
+    console.warn("Telemetry Offline.");
+}
 
-      const gateScreen = document.getElementById('gate-screen');
-      const startScreen = document.getElementById('start-screen');
-      const loginStatus = document.getElementById('login-status');
-      const gateLoginBtn = document.getElementById('gate-login-btn');
-      
-      window.currentUser = null;
+const gateScreen = document.getElementById('gate-screen');
+const startScreen = document.getElementById('start-screen');
+const loginStatus = document.getElementById('login-status');
+const gateLoginBtn = document.getElementById('gate-login-btn');
 
-      gateLoginBtn.addEventListener('click', async () => {
-          // Firebaseが設定されていない場合はモックとしてパススルー
-          if (!auth) {
-              window.currentUser = { uid: 'local_driver', displayName: 'LOCAL DRIVER' };
-              document.getElementById('user-name').innerText = window.currentUser.displayName;
-              gateScreen.classList.add('hidden');
-              startScreen.classList.remove('hidden');
-              return;
-          }
+window.currentUser = null;
 
-          loginStatus.innerText = "Connecting to Paddock...";
-          const provider = new GoogleAuthProvider();
-          try { await signInWithPopup(auth, provider); } 
-          catch (error) { console.error(error); loginStatus.innerText = "Access Denied."; }
-      });
+gateLoginBtn.addEventListener('click', async () => {
+    if (!auth) return;
+    loginStatus.innerText = "Connecting to Paddock...";
+    const provider = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, provider); } 
+    catch (error) { loginStatus.innerText = "Access Denied."; }
+});
 
-      if (auth) {
-          onAuthStateChanged(auth, async (user) => {
-            if (user) {
-              window.currentUser = user;
-              loginStatus.innerText = "Syncing Telemetry Data...";
-              
-              try {
-                  await window.fetchSRSItems();
-                  
-                  const userNameDisplay = document.getElementById('user-name');
-                  if(userNameDisplay) userNameDisplay.innerText = user.displayName || "RACING DRIVER";
-                  
-                  gateScreen.classList.add('hidden');
-                  
-                  const isQuizActive = !document.getElementById('quiz-screen').classList.contains('hidden');
-                  const isResultActive = !document.getElementById('result-screen').classList.contains('hidden');
-                  
-                  if (!isQuizActive && !isResultActive) {
-                      startScreen.classList.remove('hidden');
-                  }
-              } catch (error) {
-                  console.error("Init Error:", error);
-                  loginStatus.innerText = "Data Sync Failed. Retrying...";
-                  setTimeout(() => location.reload(), 3000);
-              }
+if (auth) {
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            window.currentUser = user;
+            loginStatus.innerText = "Syncing Cloud Telemetry...";
+            await window.fetchSRSItems();
+            document.getElementById('user-name').innerText = user.displayName || "DRIVER";
+            gateScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        } else {
+            window.currentUser = null;
+            startScreen.classList.add('hidden');
+            gateScreen.classList.remove('hidden');
+        }
+    });
+}
 
-            } else {
-              window.currentUser = null;
-              startScreen.classList.add('hidden');
-              gateScreen.classList.remove('hidden');
-              loginStatus.innerText = "System Standby...";
-            }
-          });
-      }
-
-      window.fetchSRSItems = async () => {
-        if (!window.currentUser) return;
-        const CACHE_KEY = `kobun_srs_data_${window.currentUser.uid}`;
-        
-        let allItems = [];
-        try {
-            const rawString = localStorage.getItem(CACHE_KEY);
-            if (rawString) {
-                const rawData = JSON.parse(rawString);
-                allItems = rawData.map(item => ({ 
-                    ...item, 
-                    nextReview: { toDate: () => new Date(item.nextReviewSeconds * 1000) } 
-                }));
-            }
-        } catch (e) { localStorage.removeItem(CACHE_KEY); }
-
-        const dueItems = [];
-        const nowTs = Date.now() / 1000;
-        
-        allItems.forEach(item => { 
-            if (item.nextReviewSeconds <= nowTs && !item.id.toString().startsWith('kobun_')) {
-                dueItems.push(item); 
-            }
+// クラウドからデータを取得し、ローカルを更新する
+window.fetchSRSItems = async () => {
+    if (!window.currentUser) return;
+    const uid = window.currentUser.uid;
+    const CACHE_KEY = `kobun_srs_data_${uid}`;
+    
+    try {
+        const q = collection(db, "users", uid, "srsData");
+        const querySnapshot = await getDocs(q);
+        const cloudData = [];
+        querySnapshot.forEach((doc) => {
+            cloudData.push({ id: doc.id, ...doc.data() });
         });
 
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cloudData));
+
+        const nowTs = Date.now() / 1000;
+        const dueItems = cloudData.filter(item => item.nextReviewSeconds <= nowTs);
+
         if(window.quiz) {
-            window.quiz.allMistakes = allItems;
+            window.quiz.allMistakes = cloudData;
             window.quiz.dueMistakes = dueItems;
             window.quiz.updatePitStopButton(dueItems.length);
         }
-      };
+    } catch (e) {
+        console.error("Data Fetch Error:", e);
+    }
+};
 
-      window.handleSRSUpdate = async (questionObj, isCorrect) => {
-        if (!window.currentUser) return;
-        
-        const now = new Date();
-        const safeWordId = questionObj.docId || btoa(encodeURIComponent(questionObj.w)).replace(/\//g, '_').replace(/\+/g, '-');
-        
-        const currentParams = { 
-            interval: questionObj.interval || 0, 
-            repetitions: questionObj.repetitions || 0, 
-            easeFactor: questionObj.easeFactor || 2.5 
-        };
-        
+// 学習進捗（SRS）をクラウドに送信する
+window.handleSRSUpdate = async (questionObj, isCorrect) => {
+    if (!window.currentUser) return;
+    const uid = window.currentUser.uid;
+    const safeWordId = questionObj.docId || btoa(encodeURIComponent(questionObj.w)).replace(/\//g, '_').replace(/\+/g, '-');
+    
+    const currentParams = { 
+        interval: questionObj.interval || 0, 
+        repetitions: questionObj.repetitions || 0, 
+        easeFactor: questionObj.easeFactor || 2.5 
+    };
+    
+    let nextInterval, nextRepetitions, nextEaseFactor;
+    if (!isCorrect) {
+        nextRepetitions = 0; nextInterval = 1;
+        nextEaseFactor = Math.max(1.3, currentParams.easeFactor - 0.2);
+    } else {
+        nextRepetitions = currentParams.repetitions + 1;
         const timeTaken = questionObj.timeTaken || 3.0;
-        let nextInterval, nextRepetitions, nextEaseFactor;
+        let easeBonus = timeTaken < 1.2 ? 0.3 : (timeTaken > 5.0 ? -0.15 : 0.1);
+        nextEaseFactor = Math.min(3.0, Math.max(1.3, currentParams.easeFactor + easeBonus));
+        nextInterval = nextRepetitions === 1 ? 1 : (nextRepetitions === 2 ? 6 : Math.round(currentParams.interval * nextEaseFactor));
+    }
 
-        if (!isCorrect) {
-            nextRepetitions = 0; 
-            nextInterval = 1; 
-            nextEaseFactor = Math.max(1.3, currentParams.easeFactor - 0.2); 
-        } else {
-            nextRepetitions = currentParams.repetitions + 1;
-            let easeBonus = 0;
-            if (timeTaken < 1.2) easeBonus = 0.3;
-            else if (timeTaken > 5.0) easeBonus = -0.15;
-            else easeBonus = 0.1;
+    const nextReviewSeconds = Math.floor((Date.now() / 1000) + (nextInterval * 86400));
+    
+    const newItemState = {
+        id: safeWordId,
+        word: questionObj.w,
+        meaning: questionObj.m,
+        nextReviewSeconds: nextReviewSeconds,
+        interval: nextInterval,
+        repetitions: nextRepetitions,
+        easeFactor: nextEaseFactor,
+        updatedAt: Timestamp.now()
+    };
 
-            let rawEase = currentParams.easeFactor + easeBonus;
-            nextEaseFactor = Math.min(3.0, Math.max(1.3, rawEase));
+    try {
+        await setDoc(doc(db, "users", uid, "srsData", safeWordId), newItemState, { merge: true });
+        await window.fetchSRSItems();
+    } catch(e) {
+        console.error("Cloud Sync Failed:", e);
+    }
+};
 
-            if (nextRepetitions === 1) nextInterval = 1; 
-            else if (nextRepetitions === 2) nextInterval = 6; 
-            else nextInterval = Math.max(1, Math.round(currentParams.interval * nextEaseFactor));
-        }
+// レース結果をクラウドに保存
+window.saveRaceResult = async (data) => {
+    if (!window.currentUser) return;
+    try {
+        await addDoc(collection(db, "users", window.currentUser.uid, "raceResults"), {
+            ...data,
+            timestamp: Timestamp.now()
+        });
+    } catch (e) {
+        console.error("Result Sync Error:", e);
+    }
+};
 
-        const nextDate = new Date(); 
-        nextDate.setDate(now.getDate() + nextInterval);
-        const nextReviewSeconds = Math.floor(nextDate.getTime() / 1000);
+// フラグ（ブックマーク）を同期
+window.toggleBookmark = async (safeWord, safeMeaning) => {
+    if (!window.currentUser) return;
+    const uid = window.currentUser.uid;
+    const word = decodeURIComponent(safeWord);
+    const meaning = decodeURIComponent(safeMeaning);
+    const docId = btoa(encodeURIComponent(word)).replace(/\//g, '_').replace(/\+/g, '-');
 
-        try {
-            const CACHE_KEY = `kobun_srs_data_${window.currentUser.uid}`;
-            const rawString = localStorage.getItem(CACHE_KEY);
-            let localData = [];
-            if (rawString) localData = JSON.parse(rawString);
+    const currentItem = window.quiz.allMistakes.find(m => m.word === word);
+    const isCurrentlyBookmarked = currentItem && currentItem.bookmarked === true;
+    const newValue = !isCurrentlyBookmarked;
 
-            const index = localData.findIndex(item => item.word === questionObj.w || item.id === safeWordId);
-            const newItemState = {
-                id: safeWordId,
-                word: questionObj.w,
-                meaning: questionObj.meaning || questionObj.m,
-                nextReviewSeconds: nextReviewSeconds, 
-                interval: nextInterval,
-                repetitions: nextRepetitions,
-                easeFactor: nextEaseFactor
-            };
+    try {
+        await setDoc(doc(db, "users", uid, "srsData", docId), {
+            word: word,
+            meaning: meaning,
+            bookmarked: newValue,
+            updatedAt: Timestamp.now()
+        }, { merge: true });
+        
+        await window.fetchSRSItems();
+    } catch(e) {
+        console.error("Bookmark Sync Error:", e);
+    }
+};
 
-            if (index !== -1) { localData[index] = { ...localData[index], ...newItemState }; } 
-            else { localData.push(newItemState); }
-            localStorage.setItem(CACHE_KEY, JSON.stringify(localData));
-
-            if(window.quiz && window.quiz.allMistakes) {
-                const memIndex = window.quiz.allMistakes.findIndex(m => m.id === safeWordId || m.word === questionObj.w);
-                if(memIndex !== -1) {
-                     window.quiz.allMistakes[memIndex] = { 
-                         ...window.quiz.allMistakes[memIndex], 
-                         ...newItemState,
-                         nextReview: { toDate: () => new Date(nextReviewSeconds * 1000) }
-                     };
-                }
-                const nowTs = Date.now() / 1000;
-                window.quiz.dueMistakes = window.quiz.allMistakes.filter(item => 
-                    item.nextReviewSeconds <= nowTs && !item.id.toString().startsWith('kobun_')
-                );
-                window.quiz.updatePitStopButton(window.quiz.dueMistakes.length);
-            }
-        } catch(e) { console.error("Cache Update Failed:", e); }
-      };
-
-      window.saveRaceResult = async (data) => {
-          console.log("Race Result Ready to Sync:", data);
-      };
-
-      window.toggleBookmark = async (safeWord, safeMeaning) => {
-          if (!window.currentUser) { alert("Sign in required."); return; }
-          const word = decodeURIComponent(safeWord);
-          const meaning = decodeURIComponent(safeMeaning);
-
-          let currentItem = window.quiz.allMistakes.find(m => m.word === word || m.w === word);
-          const isCurrentlyBookmarked = currentItem && currentItem.bookmarked === true;
-          const newValue = !isCurrentlyBookmarked;
-
-          if (currentItem) { currentItem.bookmarked = newValue; } 
-          else {
-              window.quiz.allMistakes.push({ 
-                   word: word, meaning: meaning, bookmarked: newValue, 
-                   interval: 0, repetitions: 0, easeFactor: 2.5,
-                   nextReviewSeconds: Date.now() / 1000 
-              });
-              currentItem = window.quiz.allMistakes.find(m => m.word === word);
-          }
-          window.quiz.renderWordBook(); 
-
-          const docId = btoa(encodeURIComponent(word)).replace(/\//g, '_').replace(/\+/g, '-');
-
-          try {
-              const CACHE_KEY = `kobun_srs_data_${window.currentUser.uid}`;
-              const rawString = localStorage.getItem(CACHE_KEY);
-              if (rawString) {
-                  let localData = JSON.parse(rawString);
-                  const index = localData.findIndex(item => item.word === word || item.id === docId);
-                  if (index !== -1) { localData[index].bookmarked = newValue; } 
-                  else {
-                      localData.push({
-                          id: docId, word: word, meaning: meaning, bookmarked: newValue,
-                          interval: 0, repetitions: 0, easeFactor: 2.5, nextReviewSeconds: Date.now() / 1000
-                      });
-                  }
-                  localStorage.setItem(CACHE_KEY, JSON.stringify(localData));
-              }
-          } catch(e) {
-              console.error("Bookmark Error:", e);
-              if(currentItem) currentItem.bookmarked = !newValue;
-              window.quiz.renderWordBook();
-          }
-      };
-
-      window.incrementDailyLaps = async () => {
-          console.log("Lap logged in Local Telemetry");
-      };
-    </script>
+// デイリーラップのカウント
+window.incrementDailyLaps = async () => {
+    if (!window.currentUser) return;
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const lapRef = doc(db, "users", window.currentUser.uid, "stats", today);
+        await setDoc(lapRef, { laps: increment(1) }, { merge: true }); // ここでincrementが必須
+    } catch (e) {
+        console.error("Stats Update Error:", e);
+    }
+};
+</script>
 </body>
 </html>
